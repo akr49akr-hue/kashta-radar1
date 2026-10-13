@@ -1,6 +1,6 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>رادار الكشتة</title>
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' data:; script-src 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; media-src 'self' data:; script-src 'unsafe-inline'; connect-src https://api.open-meteo.com; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none';">
 <meta name="referrer" content="no-referrer">
 <script>if(window.top!==window.self){try{window.top.location=window.self.location;}catch(e){document.documentElement.style.display="none";}}</script>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -254,6 +254,7 @@
   .disclaimer{margin-top:10px;font-size:.74rem;color:var(--text-soft);background:var(--surface);border:1px dashed var(--border);border-radius:12px;padding:12px 14px;line-height:1.7;}
   footer{margin-top:28px;font-size:.76rem;color:var(--text-soft);text-align:center;line-height:1.8;}
   footer a{color:var(--accent);}
+  .copyright{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);font-size:.72rem;color:var(--text-muted);}
 </style>
 
 <div class="page" dir="rtl" lang="ar">
@@ -464,8 +465,9 @@
   </section>
 
   <footer>
-    أرقام الرياح والحرارة أعلاه مسحوبة فعلياً من خدمة الأرصاد النرويجية (<span class="ltr-num">MET Norway</span>) بتاريخ <span class="ltr-num">12</span> أكتوبر <span class="ltr-num">2026</span> الساعة <span class="ltr-num">3:20</span> عصراً — وهي لقطة لا تتحدث تلقائياً، والأيام بعد بعد الغد بقراءة كل <span class="ltr-num">6</span> ساعات. هذا المصدر لا يتنبأ بالغبار، فتحقق منه قبل الخروج. للتأكد من آخر تحديث، راجع <a href="https://weather.com/ar-SA/sa/al-qassim/city/burayda/tenday" target="_blank" rel="noopener noreferrer">weather.com ↗</a> أو <a href="https://www.arabiaweather.com" target="_blank" rel="noopener noreferrer">arabiaweather ↗</a>.<br>
+    <span id="dataSourceNote">جاري الاتصال بخدمة الأرصاد المباشرة…</span> هذا المصدر لا يتنبأ بالغبار، فتحقق منه قبل الخروج. للتأكد، راجع <a href="https://weather.com/ar-SA/sa/al-qassim/city/burayda/tenday" target="_blank" rel="noopener noreferrer">weather.com ↗</a> أو <a href="https://www.arabiaweather.com" target="_blank" rel="noopener noreferrer">arabiaweather ↗</a>.<br>
     معيار الصلاحية الأساسي: رياح أقل من <span class="ltr-num">14</span> كم/س وسماء بلا غبار.
+    <div class="copyright">جميع الحقوق محفوظة لشركة <span class="ltr-num">R-Meeh</span> © <span class="ltr-num" id="copyYear"></span></div>
   </footer>
 </div>
 
@@ -493,6 +495,7 @@
     catch(e){ return ""; }
   }
 
+  document.getElementById("copyYear").textContent = today.getFullYear();
   document.getElementById("dateBox").innerHTML = "<b>"+fmtGregorian(today)+"</b><br>"+fmtHijri(today);
   document.getElementById("hijriLabel").textContent = fmtHijri(today);
 
@@ -593,20 +596,31 @@
     return Math.round(min + (max-min)*frac);
   }
 
-  var FORECAST = [
-    {date:"2026-10-12", span:3, min:31, max:37, hours:[{t:"15:00", wind:21, sky:"clear"}, {t:"18:00", wind:11, sky:"clear"}, {t:"21:00", wind:12, sky:"clear"}]},
-    {date:"2026-10-13", span:3, min:25, max:36, hours:[{t:"00:00", wind:17, sky:"clear"}, {t:"03:00", wind:15, sky:"clear"}, {t:"06:00", wind:10, sky:"clear"}, {t:"09:00", wind:8, sky:"partly"}, {t:"12:00", wind:16, sky:"partly"}, {t:"15:00", wind:18, sky:"partly"}, {t:"18:00", wind:12, sky:"cloudy"}, {t:"21:00", wind:15, sky:"cloudy"}]},
-    {date:"2026-10-14", span:3, min:24, max:36, hours:[{t:"00:00", wind:10, sky:"clear"}, {t:"03:00", wind:4, sky:"clear"}, {t:"06:00", wind:3, sky:"clear"}, {t:"09:00", wind:6, sky:"clear"}, {t:"12:00", wind:13, sky:"clear"}, {t:"15:00", wind:12, sky:"clear"}, {t:"18:00", wind:10, sky:"clear"}, {t:"21:00", wind:5, sky:"clear"}]},
-    {date:"2026-10-15", span:6, min:26, max:36, hours:[{t:"03:00", wind:14, sky:"clear"}, {t:"09:00", wind:7, sky:"cloudy"}, {t:"15:00", wind:7, sky:"clear"}, {t:"21:00", wind:6, sky:"clear"}]},
-    {date:"2026-10-16", span:6, min:25, max:36, hours:[{t:"03:00", wind:10, sky:"clear"}, {t:"09:00", wind:8, sky:"clear"}, {t:"15:00", wind:1, sky:"clear"}, {t:"21:00", wind:10, sky:"clear"}]},
-    {date:"2026-10-17", span:6, min:25, max:37, hours:[{t:"03:00", wind:10, sky:"partly"}, {t:"09:00", wind:12, sky:"clear"}, {t:"15:00", wind:6, sky:"clear"}, {t:"21:00", wind:5, sky:"clear"}]}
+  // Fallback snapshot (used instantly on load, and if the live API is unreachable).
+  // Offsets are relative to today so this never goes stale even if the live fetch fails.
+  var FALLBACK_RAW = [
+    {offset:0, span:3, min:31, max:37, hours:[{t:"15:00", wind:21, sky:"clear"}, {t:"18:00", wind:11, sky:"clear"}, {t:"21:00", wind:12, sky:"clear"}]},
+    {offset:1, span:3, min:25, max:36, hours:[{t:"00:00", wind:17, sky:"clear"}, {t:"03:00", wind:15, sky:"clear"}, {t:"06:00", wind:10, sky:"clear"}, {t:"09:00", wind:8, sky:"partly"}, {t:"12:00", wind:16, sky:"partly"}, {t:"15:00", wind:18, sky:"partly"}, {t:"18:00", wind:12, sky:"cloudy"}, {t:"21:00", wind:15, sky:"cloudy"}]},
+    {offset:2, span:3, min:24, max:36, hours:[{t:"00:00", wind:10, sky:"clear"}, {t:"03:00", wind:4, sky:"clear"}, {t:"06:00", wind:3, sky:"clear"}, {t:"09:00", wind:6, sky:"clear"}, {t:"12:00", wind:13, sky:"clear"}, {t:"15:00", wind:12, sky:"clear"}, {t:"18:00", wind:10, sky:"clear"}, {t:"21:00", wind:5, sky:"clear"}]},
+    {offset:3, span:6, min:26, max:36, hours:[{t:"03:00", wind:14, sky:"clear"}, {t:"09:00", wind:7, sky:"cloudy"}, {t:"15:00", wind:7, sky:"clear"}, {t:"21:00", wind:6, sky:"clear"}]},
+    {offset:4, span:6, min:25, max:36, hours:[{t:"03:00", wind:10, sky:"clear"}, {t:"09:00", wind:8, sky:"clear"}, {t:"15:00", wind:1, sky:"clear"}, {t:"21:00", wind:10, sky:"clear"}]},
+    {offset:5, span:6, min:25, max:37, hours:[{t:"03:00", wind:10, sky:"partly"}, {t:"09:00", wind:12, sky:"clear"}, {t:"15:00", wind:6, sky:"clear"}, {t:"21:00", wind:5, sky:"clear"}]}
   ];
+  function pad2(n){ return (n<10?"0":"")+n; }
+  function dateStr(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate()); }
   var WEEKDAY_AR=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-  FORECAST.forEach(function(d,i){
-    var p=d.date.split("-"), dt=new Date(+p[0],+p[1]-1,+p[2]);
-    d.weekday=WEEKDAY_AR[dt.getDay()];
-    d.label = i===0?"اليوم":(i===1?"غداً":d.weekday);
+  function assignLabels(arr){
+    arr.forEach(function(d,i){
+      var p=d.date.split("-"), dt=new Date(+p[0],+p[1]-1,+p[2]);
+      d.weekday=WEEKDAY_AR[dt.getDay()];
+      d.label = i===0?"اليوم":(i===1?"غداً":d.weekday);
+    });
+  }
+  var FORECAST = FALLBACK_RAW.map(function(r){
+    var dt = new Date(today); dt.setDate(dt.getDate()+r.offset);
+    return {date:dateStr(dt), span:r.span, min:r.min, max:r.max, hours:r.hours};
   });
+  assignLabels(FORECAST);
 
   function suitableCount(day){
     return day.hours.filter(function(h){ return evaluate(h.wind, h.sky).ok; }).length;
@@ -884,7 +898,7 @@
   setView("today");
 
   // ---------- folk sayings matched to season + today's forecast ----------
-  (function(){
+  function renderSayings(){
     var t = FORECAST[0], tm = FORECAST[1];
     var y = today.getFullYear();
     var inSuhail = today >= new Date(y,7,24) && today <= new Date(y,9,15,23,59);
@@ -910,14 +924,72 @@
        now:"أهدأ الليالي القادمة حسب التوقعات: <b>"+calmDays.join("، ")+"</b>."+(maxWindTm>=WIND_LIMIT_KMH?" أما غداً فالرياح تصل <b class=\"ltr-num\">"+maxWindTm+"</b> كم/س.":"")});
     var box = document.getElementById("sayings");
     var shown = L.filter(function(x){ return x.when; });
+    box.innerHTML = "";
     if(!shown.length){ document.getElementById("sayingsSection").hidden = true; return; }
+    document.getElementById("sayingsSection").hidden = false;
     shown.forEach(function(x){
       var el = document.createElement("div");
       el.className = "saying";
       el.innerHTML = '<blockquote>'+x.text+'</blockquote><div class="s-meaning">'+x.meaning+'</div><div class="s-now">'+x.now+'</div>';
       box.appendChild(el);
     });
-  })();
+  }
+  renderSayings();
+
+  // ---------- live accurate data (Open-Meteo, free + no API key) ----------
+  var BURAIDAH_LAT = 26.326, BURAIDAH_LON = 43.975;
+  var OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast?latitude="+BURAIDAH_LAT+"&longitude="+BURAIDAH_LON+
+    "&hourly=temperature_2m,wind_speed_10m,weathercode&wind_speed_unit=kmh&timezone=Asia%2FRiyadh&forecast_days=6";
+
+  function wmoToSky(code){
+    if(code===0) return "clear";
+    if(code===1 || code===2) return "partly";
+    return "cloudy"; // 3 and any fog/rain/storm code — this feed has no dust classification
+  }
+
+  function buildForecastFromOpenMeteo(json){
+    var h = json.hourly;
+    var byDate = {};
+    for(var i=0;i<h.time.length;i++){
+      var datePart = h.time[i].slice(0,10);
+      var hour = parseInt(h.time[i].slice(11,13),10);
+      if(hour % 3 !== 0) continue;
+      if(!byDate[datePart]) byDate[datePart] = {date:datePart, span:3, hours:[], temps:[]};
+      byDate[datePart].hours.push({t:pad2(hour)+":00", wind:Math.round(h.wind_speed_10m[i]), sky:wmoToSky(h.weathercode[i])});
+      byDate[datePart].temps.push(h.temperature_2m[i]);
+    }
+    var dates = Object.keys(byDate).sort();
+    return dates.map(function(d){
+      var day = byDate[d];
+      day.min = Math.round(Math.min.apply(null, day.temps));
+      day.max = Math.round(Math.max.apply(null, day.temps));
+      delete day.temps;
+      return day;
+    });
+  }
+
+  function refreshAllViews(){
+    activeDay = Math.min(activeDay, FORECAST.length-1);
+    renderDayPicker(); renderTimeTabs(); renderHero(); renderChart(); renderSayings();
+  }
+
+  fetch(OPEN_METEO_URL).then(function(res){
+    if(!res.ok) throw new Error("bad status");
+    return res.json();
+  }).then(function(json){
+    var fresh = buildForecastFromOpenMeteo(json);
+    if(!fresh.length) throw new Error("empty");
+    FORECAST.length = 0;
+    Array.prototype.push.apply(FORECAST, fresh);
+    assignLabels(FORECAST);
+    refreshAllViews();
+    var now = new Date();
+    document.getElementById("dataSourceNote").innerHTML =
+      "بيانات حية الآن من <span class=\"ltr-num\">Open-Meteo</span> — آخر تحديث اليوم الساعة <span class=\"ltr-num\">"+pad2(now.getHours())+":"+pad2(now.getMinutes())+"</span>.";
+  }).catch(function(){
+    document.getElementById("dataSourceNote").textContent =
+      "تعذّر الاتصال بخدمة الأرصاد المباشرة الآن، فالأرقام أعلاه من آخر لقطة محفوظة وقد لا تكون دقيقة.";
+  });
 })();
 </script>
 
