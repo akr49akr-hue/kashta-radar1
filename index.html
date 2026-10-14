@@ -123,6 +123,19 @@
   .rain-line.dry{background:#FBF1DE;color:#7A4E12;border:1px solid #EFD9AE;}
   .rain-line.wet{background:#E1EEFB;color:#14508A;border:1px solid #B9D6F3;}
   .rain-line small{display:block;font-weight:500;font-size:.78rem;opacity:.8;}
+  /* ---- moon tonight ---- */
+  .moon-card{display:flex;align-items:center;gap:20px;padding:18px 20px;flex-wrap:wrap;}
+  .moon-card.full{background:linear-gradient(135deg,#1E2A55,#33407A);color:#fff;border-color:transparent;}
+  .moon-svg{width:110px;height:110px;flex:none;filter:drop-shadow(0 6px 16px rgba(20,30,70,.35));}
+  .moon-card.full .moon-svg{filter:drop-shadow(0 0 22px rgba(255,236,170,.75));}
+  .moon-txt{flex:1;min-width:200px;}
+  .moon-big{font-family:"Thmanyah Sans Web","Cairo",sans-serif;font-size:2rem;font-weight:900;line-height:1.15;}
+  .moon-card.full .moon-big{color:#FFE9A8;}
+  .moon-sub{margin-top:6px;font-size:.95rem;color:var(--text-soft);line-height:1.7;}
+  .moon-card.full .moon-sub{color:rgba(255,255,255,.82);}
+  .moon-stats{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:.85rem;}
+  .moon-stats span{background:var(--surface-2);border-radius:999px;padding:4px 12px;}
+  .moon-card.full .moon-stats span{background:rgba(255,255,255,.14);}
   /* ---- rain radar ---- */
   .radar-card{padding:12px;}
   .radar-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
@@ -136,13 +149,13 @@
   .radar-note a{color:var(--accent);}
 
   .hero-weather{position:relative;z-index:1;margin-top:20px;display:flex;align-items:center;justify-content:space-between;gap:14px;}
-  .hero-icon{position:relative;width:clamp(76px,16vw,108px);height:clamp(76px,16vw,108px);display:flex;align-items:center;justify-content:center;}
+  .hero-icon{position:relative;width:clamp(120px,26vw,180px);height:clamp(120px,26vw,180px);display:flex;align-items:center;justify-content:center;}
   .hero-icon::before{content:"";position:absolute;inset:-18%;border-radius:50%;background:radial-gradient(circle, rgba(247,217,121,.55), transparent 70%);filter:blur(10px);z-index:-1;}
   .hero-icon .wicon{width:100%;height:100%;}
   .hw-label{font-size:.88rem;color:var(--text-soft);font-weight:600;}
-  .hw-temp{font-family:"Thmanyah Sans Web","Cairo",sans-serif;font-weight:800;font-size:clamp(3rem,10vw,4.2rem);color:var(--night-ink);line-height:1.05;}
+  .hw-temp{font-family:"Thmanyah Sans Web","Cairo",sans-serif;font-weight:800;font-size:clamp(4.6rem,17vw,7.4rem);color:var(--night-ink);line-height:1;letter-spacing:-.02em;}
   .hw-temp small{font-size:.4em;font-weight:600;color:var(--text-soft);}
-  .hw-cond{font-size:.92rem;color:var(--text-soft);margin-top:2px;}
+  .hw-cond{font-size:1.08rem;color:var(--text-soft);margin-top:4px;font-weight:600;}
 
   .status-pill{
     position:relative;z-index:1;margin-top:18px;display:flex;align-items:center;gap:12px;
@@ -416,6 +429,21 @@
       <p>اختر يوماً لعرض تفاصيله بالأسفل</p>
     </div>
     <div class="day-picker" id="dayPicker"></div>
+  </section>
+
+  <section id="moonSection">
+    <div class="sec-head">
+      <h3>القمر الليلة</h3>
+      <p>حالة القمر في سماء بريدة الساعة ٩ مساءً</p>
+    </div>
+    <div class="card moon-card" id="moonCard">
+      <svg class="moon-svg" id="moonSvg" viewBox="0 0 120 120" role="img" aria-label="شكل القمر الليلة"></svg>
+      <div class="moon-txt">
+        <div class="moon-big" id="moonBig">—</div>
+        <p class="moon-sub" id="moonSub"></p>
+        <div class="moon-stats" id="moonStats"></div>
+      </div>
+    </div>
   </section>
 
   <section id="radarSection">
@@ -726,7 +754,7 @@
     document.getElementById("verdictSub").textContent = "الرياح "+(hrs.length>1?'حتى ':'')+maxWind+" كم/س";
 
     document.getElementById("heroLabel").textContent = timeLabel+" في بريدة";
-    document.getElementById("heroIconWrap").innerHTML = iconSvg(heroIconId, 90);
+    document.getElementById("heroIconWrap").innerHTML = iconSvg(heroIconId, 180);
     document.getElementById("heroTemp").innerHTML = interpTemp(hour.t, day.min, day.max)+'<small>°</small>';
     document.getElementById("heroCond").textContent = SKY_AR[hour.sky]+" "+SKY_ICON[hour.sky]+" · العظمى "+day.max+"° · الصغرى "+day.min+"°";
 
@@ -1162,6 +1190,53 @@
       show(b.getAttribute("data-layer"));
     });
   });
+})();
+
+// ---------- moon tonight ----------
+(function(){
+  var SYN = 29.530588853, REF = Date.UTC(2000,0,6,18,14); // a known new moon
+  function ageAt(d){ var a = ((d.getTime()-REF)/864e5) % SYN; return a<0?a+SYN:a; }
+  function illum(age){ return (1-Math.cos(2*Math.PI*age/SYN))/2; }
+  function phaseName(age, il){
+    if(il>=0.95) return "بدر";
+    if(age<1.5 || age>SYN-1.5) return "محاق";
+    var waxing = age<SYN/2;
+    if(Math.abs(il-0.5)<0.06) return waxing?"تربيع أول":"تربيع ثانٍ";
+    if(il<0.5) return waxing?"هلال متزايد":"هلال متناقص";
+    return waxing?"أحدب متزايد":"أحدب متناقص";
+  }
+  function draw(age, il){
+    var r=50,cx=60,cy=60, k=Math.cos(2*Math.PI*age/SYN), rx=Math.abs(k)*r, waxing=age<SYN/2;
+    var crescent = il<0.5, d;
+    if(waxing){ d="M"+cx+" "+(cy-r)+" A"+r+" "+r+" 0 0 1 "+cx+" "+(cy+r)+" A"+rx+" "+r+" 0 0 "+(crescent?0:1)+" "+cx+" "+(cy-r)+" Z"; }
+    else      { d="M"+cx+" "+(cy-r)+" A"+r+" "+r+" 0 0 0 "+cx+" "+(cy+r)+" A"+rx+" "+r+" 0 0 "+(crescent?1:0)+" "+cx+" "+(cy-r)+" Z"; }
+    var svg=document.getElementById("moonSvg");
+    svg.innerHTML =
+      '<defs><radialGradient id="mLit" cx="40%" cy="38%" r="70%"><stop offset="0" stop-color="#FFF8DC"/><stop offset="1" stop-color="#E9DDAE"/></radialGradient></defs>'+
+      '<circle cx="60" cy="60" r="50" fill="#2B3456"/>'+
+      (il<0.01?'':'<path d="'+d+'" fill="url(#mLit)"/>')+
+      '<circle cx="46" cy="44" r="7" fill="rgba(120,110,80,.18)"/><circle cx="72" cy="70" r="9" fill="rgba(120,110,80,.15)"/><circle cx="58" cy="82" r="5" fill="rgba(120,110,80,.15)"/>'+
+      '<circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,.25)" stroke-width="1"/>';
+  }
+  function daysAr(n){ return n===1?"يوم واحد":n===2?"يومان":(n>=3&&n<=10)?n+" أيام":n+" يوماً"; }
+  function render(){
+    var t = new Date(); t.setHours(21,0,0,0);          // tonight, kashta time
+    var age = ageAt(t), il = illum(age), full = il>=0.95;
+    draw(age, il);
+    var card=document.getElementById("moonCard");
+    card.classList.toggle("full", full);
+    document.getElementById("moonBig").textContent = full ? "الليله قماري 🌕" : phaseName(age, il);
+    var toFull = (SYN/2 - age + SYN) % SYN, days = Math.round(toFull);
+    document.getElementById("moonSub").textContent = full
+      ? "القمر بدر والبر منوّر، ليلة سمر وكشتة بدون كشافات."
+      : (il<0.25 ? "الليل مظلم، النجوم واضحة وتحتاج إضاءة للكشتة." : il<0.6 ? "إضاءة القمر متوسطة الليلة." : "القمر منوّر أغلب الليل.");
+    var st=document.getElementById("moonStats"); st.textContent="";
+    [["الإضاءة", Math.round(il*100)+"٪"], ["عمر القمر", daysAr(Math.max(1,Math.round(age)))], [full?"البدر":"البدر بعد", full?"الليلة":(days<=0?"قريب":daysAr(days))]].forEach(function(x){
+      var e=document.createElement("span"); e.textContent=x[0]+": "+x[1]; st.appendChild(e);
+    });
+  }
+  render();
+  setInterval(render, 60*60*1000);
 })();
 </script>
 
