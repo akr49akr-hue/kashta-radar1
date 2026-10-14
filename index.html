@@ -117,6 +117,12 @@
   .seg-bar button{flex:none;font-family:inherit;font-size:.84rem;font-weight:600;padding:9px 16px;border-radius:999px;border:none;background:transparent;color:var(--text-soft);cursor:pointer;white-space:nowrap;}
   .seg-bar button.active{background:#fff;color:var(--text);font-weight:700;box-shadow:0 2px 8px -2px rgba(23,39,63,.25);}
   .seg-bar button:disabled{opacity:.4;cursor:not-allowed;}
+  /* ---- rain line (today) ---- */
+  .rain-line{position:relative;z-index:1;margin-top:10px;display:flex;align-items:center;gap:10px;font-size:.95rem;font-weight:700;border-radius:14px;padding:10px 14px;width:fit-content;max-width:100%;}
+  .rain-line .ri{font-size:1.25rem;line-height:1;}
+  .rain-line.dry{background:#FBF1DE;color:#7A4E12;border:1px solid #EFD9AE;}
+  .rain-line.wet{background:#E1EEFB;color:#14508A;border:1px solid #B9D6F3;}
+  .rain-line small{display:block;font-weight:500;font-size:.78rem;opacity:.8;}
   /* ---- rain radar ---- */
   .radar-card{padding:12px;}
   .radar-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
@@ -387,6 +393,7 @@
 
     <div class="hero-explain" id="heroExplain"></div>
     <div class="best-line" id="bestLine"></div>
+    <div class="rain-line dry" id="rainLine" role="status" hidden></div>
     </div>
 
     <div class="hero-media">
@@ -959,7 +966,7 @@
   // used here only to overlay a dust/sandstorm flag on top of Open-Meteo's reading, or as a full fallback if Open-Meteo is unreachable.
   var BURAIDAH_LAT = 26.326, BURAIDAH_LON = 43.975;
   var OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast?latitude="+BURAIDAH_LAT+"&longitude="+BURAIDAH_LON+
-    "&hourly=temperature_2m,wind_speed_10m,weathercode&wind_speed_unit=kmh&timezone=Asia%2FRiyadh&forecast_days=6";
+    "&hourly=temperature_2m,wind_speed_10m,weathercode,precipitation&wind_speed_unit=kmh&timezone=Asia%2FRiyadh&forecast_days=6";
   var WTTR_URL = "https://wttr.in/Buraidah?format=j1";
 
   function wmoToSky(code){
@@ -974,8 +981,10 @@
     for(var i=0;i<h.time.length;i++){
       var datePart = h.time[i].slice(0,10);
       var hour = parseInt(h.time[i].slice(11,13),10);
+      if(!byDate[datePart]) byDate[datePart] = {date:datePart, span:3, hours:[], temps:[], rain:false};
+      var wc = h.weathercode[i], pr = h.precipitation ? h.precipitation[i] : 0;
+      if((wc>=51 && wc<=67) || (wc>=80 && wc<=82) || wc>=95 || pr>=0.2) byDate[datePart].rain = true;
       if(hour % 3 !== 0) continue;
-      if(!byDate[datePart]) byDate[datePart] = {date:datePart, span:3, hours:[], temps:[]};
       byDate[datePart].hours.push({t:pad2(hour)+":00", wind:Math.round(h.wind_speed_10m[i]), sky:wmoToSky(h.weathercode[i])});
       byDate[datePart].temps.push(h.temperature_2m[i]);
     }
@@ -1021,10 +1030,35 @@
     }).filter(function(d){ return d.hours.length>0; });
   }
 
+  // rain from wttr.in: any hour with measurable rain or a rain/shower/thunder description
+  function wttrRainDates(json){
+    var set = {};
+    (json.weather||[]).forEach(function(day){
+      (day.hourly||[]).forEach(function(h){
+        var d = ((h.weatherDesc && h.weatherDesc[0] && h.weatherDesc[0].value)||"").toLowerCase();
+        if(parseFloat(h.precipMM)>=0.2 || /rain|drizzle|shower|thunder/.test(d)) set[day.date] = true;
+      });
+    });
+    return set;
+  }
+
+  // today's rain line
+  function renderRainLine(){
+    var el = document.getElementById("rainLine");
+    var day = FORECAST.filter(function(d){ return d.date===dateStr(new Date()); })[0];
+    if(!day){ el.hidden = true; return; }
+    var wet = !!day.rain;
+    el.className = "rain-line "+(wet?"wet":"dry");
+    el.innerHTML = wet
+      ? '<span class="ri">🌧️</span><span>الله يجيب الخير<small>فيه حالة مطرية متوقعة اليوم في بريدة</small></span>'
+      : '<span class="ri">🌵</span><span>الشكوى لله ماحولك مطر الله يغيثنا<small>ما فيه أمطار متوقعة اليوم في بريدة</small></span>';
+    el.hidden = false;
+  }
+
   function refreshAllViews(){
     activeDay = Math.min(activeDay, FORECAST.length-1);
     updateTomorrowTab();
-    renderDayPicker(); renderTimeTabs(); renderHero(); renderChart(); renderSayings();
+    renderDayPicker(); renderTimeTabs(); renderHero(); renderChart(); renderSayings(); renderRainLine();
   }
 
   function fetchLiveWeather(){
@@ -1060,6 +1094,10 @@
         note = "تعذّر الوصول لـ Open-Meteo، فالأرقام أعلاه من <span class=\"ltr-num\">wttr.in</span> فقط — آخر تحديث الساعة <span class=\"ltr-num\">"+stamp+"</span>.";
       }
 
+      if(fresh && fresh.length && wttr){
+        var wetDates = wttrRainDates(wttr);
+        fresh.forEach(function(d){ if(wetDates[d.date]) d.rain = true; });
+      }
       if(fresh && fresh.length){
         FORECAST.length = 0;
         Array.prototype.push.apply(FORECAST, fresh);
@@ -1074,6 +1112,7 @@
       }
     });
   }
+  renderRainLine();
   fetchLiveWeather();
   setInterval(fetchLiveWeather, 15*60*1000); // refetch live data every 15 minutes
 
