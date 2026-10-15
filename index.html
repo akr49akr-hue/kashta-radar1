@@ -45,15 +45,46 @@
   *{box-sizing:border-box;}
   body{background:linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 45%, var(--bg-bottom) 100%);background-attachment:fixed;transition:background 1.2s ease;}
   /* the page reacts to whatever condition the hero is currently showing */
-  body[data-cond="cloudy"]{--bg-top:#EEF1F5;--bg-mid:#CBD4E0;--bg-bottom:#8E9BB0;}
-  body[data-cond="dusty"]{--bg-top:#FBF3E2;--bg-mid:#E9D0A2;--bg-bottom:#C69B5E;}
-  body[data-cond="clear-night"]{--bg-top:#DCE4F3;--bg-mid:#A9B9DC;--bg-bottom:#51628F;}
+  /* background = time of day (data-time) + weather on top (data-cond) */
+  body[data-time="dawn"]  {--bg-top:#2E3A6B;--bg-mid:#C88EA0;--bg-bottom:#F6C79C;}
+  body[data-time="day"]   {--bg-top:#EFF8FE;--bg-mid:#BFE2F8;--bg-bottom:#6FB3E0;}
+  body[data-time="asr"]   {--bg-top:#FCEFD2;--bg-mid:#F5C27E;--bg-bottom:#DC8A4C;}
+  body[data-time="sunset"]{--bg-top:#3A2D5E;--bg-mid:#C4566C;--bg-bottom:#F39B5C;}
+  body[data-time="night"] {--bg-top:#060B20;--bg-mid:#111A40;--bg-bottom:#26305E;}
+  /* weather wash over the sky */
+  .weather-fx::before{content:"";position:absolute;inset:0;opacity:0;transition:opacity 1.2s ease,background 1.2s ease;}
+  body[data-cond="cloudy"] .weather-fx::before{opacity:1;background:linear-gradient(180deg,rgba(150,160,175,.55),rgba(120,130,150,.35));}
+  body[data-cond="dusty"]  .weather-fx::before{opacity:1;background:linear-gradient(180deg,rgba(214,168,98,.62),rgba(176,124,60,.5));}
+  body[data-cond="rain"]   .weather-fx::before{opacity:1;background:linear-gradient(180deg,rgba(62,76,98,.72),rgba(90,105,128,.5));}
+  body[data-time="night"][data-cond="cloudy"] .weather-fx::before{background:linear-gradient(180deg,rgba(40,44,60,.6),rgba(60,66,84,.45));}
+  body[data-time="night"][data-cond="dusty"]  .weather-fx::before{background:linear-gradient(180deg,rgba(70,48,24,.6),rgba(110,76,38,.45));}
+  .fx-rain{position:absolute;top:-12%;width:1.5px;height:70px;background:linear-gradient(180deg,transparent,rgba(220,235,255,.85));opacity:0;transform:rotate(12deg);animation:fxRain .9s linear infinite;transition:opacity .8s;}
+  body[data-cond="rain"] .fx-rain{opacity:.8;}
+  body[data-cond="rain"] .fx-cloud{opacity:.5;}
+  @keyframes fxRain{from{transform:translate(0,0) rotate(12deg)}to{transform:translate(-26vh,125vh) rotate(12deg)}}
+  .fx-glow{position:absolute;width:420px;height:420px;border-radius:50%;opacity:0;transition:opacity 1.2s,background 1.2s;pointer-events:none;}
+  body[data-time="day"][data-cond="clear"] .fx-glow{opacity:.55;top:-160px;left:-120px;background:radial-gradient(circle,rgba(255,244,190,.9),transparent 65%);}
+  body[data-time="asr"][data-cond="clear"] .fx-glow,body[data-time="sunset"][data-cond="clear"] .fx-glow{opacity:.6;bottom:-200px;left:-140px;background:radial-gradient(circle,rgba(255,190,110,.9),transparent 65%);}
+  body[data-time="night"] .fx-glow{opacity:.35;top:-170px;right:-150px;left:auto;background:radial-gradient(circle,rgba(200,215,255,.6),transparent 65%);}
+  /* dark skies (night, dawn, sunset) = light text on dark glass */
+  body[data-dark]{
+    --surface:rgba(20,28,58,.86);--surface-2:rgba(38,48,86,.72);
+    --text:#EAF0FF;--text-soft:#AFC0E2;--text-muted:#7F90B5;--border:rgba(255,255,255,.12);
+    --night-ink:#EAF0FF;--shadow:0 12px 30px -14px rgba(0,0,0,.7);
+    color:var(--text);
+  }
+  body[data-dark] .seg-bar{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.18);}
+  body[data-dark] .seg-bar button.active{background:#EAF0FF;color:#0E1530;}
+  body[data-dark] .brand-mark{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25);}
+  body[data-time="sunset"] .sec-head h3,body[data-time="dawn"] .sec-head h3{text-shadow:0 1px 10px rgba(0,0,0,.18);}
+  @media (prefers-reduced-motion: reduce){ .fx-rain{animation:none;} }
 
   .weather-fx{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0;}
   .fx-cloud, .fx-dust, .fx-star{position:absolute;opacity:0;transition:opacity 1s;}
   body[data-cond="cloudy"] .fx-cloud{opacity:.55;}
   body[data-cond="dusty"] .fx-dust{opacity:.7;}
-  body[data-cond="clear-night"] .fx-star{opacity:.8;}
+  .fx-star{visibility:hidden;}
+  body[data-time="night"]:not([data-cond="rain"]):not([data-cond="dusty"]) .fx-star{visibility:visible;}
   .fx-cloud{width:220px;height:70px;border-radius:50%;background:radial-gradient(ellipse, rgba(255,255,255,.9), transparent 70%);filter:blur(2px);animation:fxDrift 50s linear infinite;}
   .fx-cloud.c2{width:160px;height:50px;top:18%;animation-duration:65s;animation-delay:-20s;}
   .fx-cloud.c3{width:120px;height:40px;top:32%;animation-duration:40s;animation-delay:-8s;}
@@ -123,6 +154,76 @@
   .rain-line.dry{background:#FBF1DE;color:#7A4E12;border:1px solid #EFD9AE;}
   .rain-line.wet{background:#E1EEFB;color:#14508A;border:1px solid #B9D6F3;}
   .rain-line small{display:block;font-weight:500;font-size:.78rem;opacity:.8;}
+  .rain-prob{display:flex;align-items:center;gap:10px;margin-inline-start:6px;padding-inline-start:14px;border-inline-start:1px solid currentColor;border-color:rgba(0,0,0,.12);}
+  .rain-prob .rp-num{font-size:1.6rem;font-weight:900;line-height:1;direction:ltr;unicode-bidi:isolate;}
+  .rain-prob .rp-lbl{font-size:.76rem;font-weight:600;opacity:.85;line-height:1.3;}
+  .rain-prob .rp-bar{display:block;width:70px;height:6px;border-radius:999px;background:rgba(0,0,0,.1);margin-top:4px;overflow:hidden;}
+  .rain-prob .rp-bar i{display:block;height:100%;border-radius:999px;background:currentColor;}
+  @media (max-width:520px){ .rain-line{flex-wrap:wrap;} .rain-prob{margin-inline-start:0;padding-inline-start:0;border:none;width:100%;} }
+
+  /* ---- cartoon desert scene (verdict) ---- */
+  .scene{position:relative;z-index:1;margin-top:18px;border-radius:18px;overflow:hidden;width:100%;height:clamp(130px,24vw,230px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.35);}
+  .scene svg{position:absolute;inset:0;width:100%;height:100%;display:block;}
+  .scene[hidden]{display:none!important;}
+  .scene-cap{position:absolute;top:10px;right:12px;z-index:2;font-weight:800;font-size:.9rem;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.85);color:#3B2A12;box-shadow:0 4px 12px -6px rgba(0,0,0,.35);}
+  .scene.bad .scene-cap{background:#C2453B;color:#fff;}
+  .scene.ok{background:linear-gradient(180deg,#9FE0F2 0%,#D3F1F7 55%,#F3E3C3 100%);}
+  .scene.ok[data-phase="asr"]{background:linear-gradient(180deg,#F59E5B 0%,#F8C98A 50%,#F6E0B5 100%);}
+  .scene.ok[data-phase="night"]{background:linear-gradient(180deg,#0B1030 0%,#1B2457 55%,#3B3566 100%);}
+  .scene.bad[data-phase="night"]{background:linear-gradient(180deg,#1A1424 0%,#3E2C35 55%,#7A5636 100%);}
+  .scene[data-phase="night"] .scene-cap{background:rgba(20,24,60,.85);color:#FFE9A8;}
+  .scene.bad[data-phase="night"] .scene-cap{background:#C2453B;color:#fff;}
+  .sc-stars,.sc-moon,.sc-lights{display:none;}
+  .scene[data-phase="night"] .sc-stars,.scene[data-phase="night"] .sc-moon,.scene[data-phase="night"] .sc-lights{display:inline;}
+  .scene[data-phase="night"] .sc-dust{display:none;}
+  .scene[data-phase="night"] .sc-dune-far path:not([fill="none"]),.scene[data-phase="night"] rect.band-far{fill:#6B5A6E;}
+  .scene[data-phase="night"] .band-mid,.scene[data-phase="night"] .dune-mid{fill:#57475C;}
+  .scene[data-phase="asr"] .sc-dune-far path:not([fill="none"]),.scene[data-phase="asr"] rect.band-far{fill:#E9B676;}
+  .sc-star{animation:twinkle 1.8s ease-in-out infinite alternate;}
+  .sc-star.t2{animation-delay:.6s}.sc-star.t3{animation-delay:1.2s}
+  @keyframes twinkle{from{opacity:.25}to{opacity:1}}
+  .sc-beam{animation:beam .9s ease-in-out infinite alternate;}
+  @keyframes beam{from{opacity:.55}to{opacity:.85}}
+  .sc-dust{transform-box:fill-box;transform-origin:center;opacity:0;animation:dust 1.5s ease-out infinite;}
+  .sc-dust.d2{animation-delay:.25s}.sc-dust.d3{animation-delay:.5s}.sc-dust.d4{animation-delay:.75s}.sc-dust.d5{animation-delay:1s}.sc-dust.d6{animation-delay:1.25s}
+  @keyframes dust{0%{opacity:1;transform:translate(0,0) scale(.5)}100%{opacity:0;transform:translate(95px,-26px) scale(2.8)}}
+  .scene.bad{background:linear-gradient(180deg,#B7854A 0%,#D2A465 55%,#E2BD82 100%);}
+
+  /* car */
+  .sc-car{animation:carDrive 8.5s linear infinite;}
+  .sc-carbody{animation:carBounce .32s ease-in-out infinite alternate;}
+  .sc-wheel{transform-box:fill-box;transform-origin:center;animation:wheelSpin .45s linear infinite;}
+  .sc-puff{transform-box:fill-box;transform-origin:center;opacity:0;animation:puff 1s ease-out infinite;}
+  .sc-puff.p2{animation-delay:.33s}.sc-puff.p3{animation-delay:.66s}
+  @keyframes carDrive{from{transform:translateX(900px)}to{transform:translateX(-460px)}}
+  @keyframes carBounce{from{transform:translateY(0) rotate(0deg)}to{transform:translateY(-3px) rotate(-1.2deg)}}
+  @keyframes wheelSpin{to{transform:rotate(-360deg)}}
+  @keyframes puff{0%{opacity:.85;transform:translate(0,0) scale(.5)}100%{opacity:0;transform:translate(46px,-16px) scale(1.7)}}
+  .sc-dune-far{animation:duneDrift 14s linear infinite;}
+  @keyframes duneDrift{from{transform:translateX(0)}to{transform:translateX(-600px)}}
+
+  /* sinking guy */
+  .sc-guy{animation:guySink 5.5s cubic-bezier(.5,0,.7,1) infinite;}
+  .sc-arm-l{transform-box:fill-box;transform-origin:100% 100%;animation:armWave .28s ease-in-out infinite alternate;}
+  .sc-arm-r{transform-box:fill-box;transform-origin:0% 100%;animation:armWave .28s ease-in-out infinite alternate-reverse;}
+  .sc-bubble{animation:bubble 5.5s ease-out infinite;}
+  .sc-streak{animation:streak 1.4s linear infinite;}
+  .sc-streak.s2{animation-duration:1.1s;animation-delay:.4s}.sc-streak.s3{animation-duration:1.7s;animation-delay:.8s}
+  .sc-streak.s4{animation-duration:1.25s;animation-delay:.2s}.sc-streak.s5{animation-duration:1.55s;animation-delay:.6s}
+  .sc-grain{animation:grain 1.1s linear infinite;}
+  .sc-grain.g2{animation-delay:.25s}.sc-grain.g3{animation-delay:.5s}.sc-grain.g4{animation-delay:.75s}
+  @keyframes guySink{0%{transform:translateY(0)}12%{transform:translateY(4px)}70%{transform:translateY(72px)}88%{transform:translateY(72px)}100%{transform:translateY(0)}}
+  @keyframes armWave{from{transform:rotate(-14deg)}to{transform:rotate(14deg)}}
+  @keyframes bubble{0%,8%{opacity:0;transform:scale(.6)}16%,62%{opacity:1;transform:scale(1)}72%,100%{opacity:0;transform:scale(.9)}}
+  @keyframes streak{from{transform:translateX(-420px)}to{transform:translateX(1000px)}}
+  @keyframes grain{from{transform:translate(0,-30px);opacity:0}15%{opacity:1}to{transform:translate(70px,130px);opacity:0}}
+  @media (prefers-reduced-motion: reduce){
+    .scene *{animation:none!important;}
+    .sc-car{transform:translateX(230px);}
+    .sc-guy{transform:translateY(40px);}
+    .sc-star{opacity:1;}
+    .sc-bubble{opacity:1;}
+  }
   /* ---- moon tonight ---- */
   .moon-card{display:flex;align-items:center;gap:20px;padding:18px 20px;flex-wrap:wrap;}
   .moon-card.full{background:linear-gradient(135deg,#1E2A55,#33407A);color:#fff;border-color:transparent;}
@@ -280,6 +381,7 @@
 </style>
 
 <div class="weather-fx" aria-hidden="true">
+<span class="fx-glow"></span><span class="fx-rain" style="left:5%;animation-delay:-0.10s;animation-duration:0.80s"></span><span class="fx-rain" style="left:14%;animation-delay:-0.50s;animation-duration:0.95s"></span><span class="fx-rain" style="left:23%;animation-delay:-0.30s;animation-duration:0.85s"></span><span class="fx-rain" style="left:31%;animation-delay:-0.70s;animation-duration:0.90s"></span><span class="fx-rain" style="left:40%;animation-delay:-0.20s;animation-duration:0.80s"></span><span class="fx-rain" style="left:48%;animation-delay:-0.60s;animation-duration:1.00s"></span><span class="fx-rain" style="left:57%;animation-delay:-0.40s;animation-duration:0.85s"></span><span class="fx-rain" style="left:65%;animation-delay:-0.80s;animation-duration:0.90s"></span><span class="fx-rain" style="left:73%;animation-delay:-0.15s;animation-duration:0.80s"></span><span class="fx-rain" style="left:81%;animation-delay:-0.55s;animation-duration:0.95s"></span><span class="fx-rain" style="left:89%;animation-delay:-0.35s;animation-duration:0.85s"></span><span class="fx-rain" style="left:96%;animation-delay:-0.75s;animation-duration:0.90s"></span><span class="fx-rain" style="left:10%;animation-delay:-0.90s;animation-duration:1.05s"></span><span class="fx-rain" style="left:52%;animation-delay:-1.10s;animation-duration:0.95s"></span><span class="fx-rain" style="left:77%;animation-delay:-1.30s;animation-duration:1.00s"></span><span class="fx-star" style="top:5%;left:30%;animation-delay:-0.3s"></span><span class="fx-star" style="top:18%;left:55%;animation-delay:-1.2s"></span><span class="fx-star" style="top:30%;left:82%;animation-delay:-0.8s"></span><span class="fx-star" style="top:36%;left:24%;animation-delay:-2.0s"></span><span class="fx-star" style="top:12%;left:46%;animation-delay:-1.6s"></span><span class="fx-star" style="top:40%;left:62%;animation-delay:-0.4s"></span><span class="fx-star" style="top:7%;left:96%;animation-delay:-1.1s"></span><span class="fx-star" style="top:33%;left:4%;animation-delay:-0.7s"></span>
   <span class="fx-cloud"></span><span class="fx-cloud c2"></span><span class="fx-cloud c3"></span>
   <span class="fx-dust" style="top:30%;animation-delay:0s"></span>
   <span class="fx-dust" style="top:55%;animation-delay:-6s"></span>
@@ -420,6 +522,130 @@
       </figure>
     </div>
 
+    </div>
+    <div class="scene ok" id="sceneOk" data-phase="day" role="img" aria-label="رسم كرتوني: ونيت أحمر يمشي على الرمال لأن الجو مناسب للكشتة" hidden>
+      <span class="scene-cap" id="sceneOkCap">🛻 الجو رايق.. حرّك الونيت</span>
+      <svg viewBox="0 0 600 170" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+        <defs>
+          <filter id="scWobbleA" x="-25%" y="-40%" width="150%" height="180%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="4"/>
+            <feDisplacementMap in="SourceGraphic" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </defs>
+        <g class="sc-stars" fill="#FFF6D0">
+          <circle class="sc-star"    cx="40"  cy="22" r="1.8"/><circle class="sc-star t2" cx="95"  cy="48" r="1.3"/>
+          <circle class="sc-star t3" cx="150" cy="16" r="2"/>  <circle class="sc-star"    cx="210" cy="40" r="1.2"/>
+          <circle class="sc-star t2" cx="265" cy="12" r="1.6"/><circle class="sc-star t3" cx="330" cy="34" r="1.3"/>
+          <circle class="sc-star"    cx="395" cy="20" r="2"/>  <circle class="sc-star t2" cx="455" cy="50" r="1.2"/>
+          <circle class="sc-star t3" cx="520" cy="26" r="1.7"/><circle class="sc-star"    cx="575" cy="58" r="1.3"/>
+          <circle class="sc-star t2" cx="-60" cy="30" r="1.6"/><circle class="sc-star t3" cx="-140" cy="56" r="1.2"/>
+          <circle class="sc-star"    cx="660" cy="22" r="1.7"/><circle class="sc-star t2" cx="740" cy="46" r="1.3"/>
+          <path class="sc-star t3" d="M120 70 l2 -6 l2 6 l6 2 l-6 2 l-2 6 l-2 -6 l-6 -2 z"/>
+          <path class="sc-star" d="M480 74 l1.6 -5 l1.6 5 l5 1.6 l-5 1.6 l-1.6 5 l-1.6 -5 l-5 -1.6 z"/>
+        </g>
+        <g class="sc-moon"><circle cx="70" cy="38" r="16" fill="#FFF3C4" stroke="#1E1E1E" stroke-width="3"/><circle cx="78" cy="33" r="14" fill="#141B44"/></g>
+        <rect class="band-far" x="-900" y="112" width="2400" height="80" fill="#EAC98E"/>
+        <g class="sc-dune-far">
+          <path d="M0 112 C70 86 130 92 190 106 C260 122 320 84 400 92 C470 99 530 118 600 112 L600 170 L0 170 Z" fill="#EAC98E"/>
+          <path d="M0 112 C70 86 130 92 190 106 C260 122 320 84 400 92 C470 99 530 118 600 112" fill="none" stroke="#1E1E1E" stroke-width="2.5"/>
+          <path d="M600 112 C670 86 730 92 790 106 C860 122 920 84 1000 92 C1070 99 1130 118 1200 112 L1200 170 L600 170 Z" fill="#EAC98E"/>
+          <path d="M600 112 C670 86 730 92 790 106 C860 122 920 84 1000 92 C1070 99 1130 118 1200 112" fill="none" stroke="#1E1E1E" stroke-width="2.5"/>
+        </g>
+        <rect class="band-mid" x="-900" y="134" width="2400" height="60" fill="#DDB273"/>
+        <path class="dune-mid" d="M-900 138 L0 138 C90 124 170 130 260 136 C360 143 450 126 600 132 L1500 132 L1500 170 L-900 170 Z" fill="#DDB273" stroke="#1E1E1E" stroke-width="3"/>
+        <path d="M40 152 q14 -4 28 0 M150 158 q14 -4 28 0 M300 150 q14 -4 28 0 M450 158 q14 -4 28 0 M540 149 q12 -4 24 0" stroke="#9C6F3A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <g class="sc-car">
+          <g transform="translate(0,72)">
+            <g class="sc-dust-wrap">
+              <circle class="sc-dust"    cx="184" cy="58" r="12" fill="#DDB97D" stroke="#7A5530" stroke-width="2"/>
+              <circle class="sc-dust d2" cx="192" cy="50" r="10" fill="#DDB97D" stroke="#7A5530" stroke-width="2"/>
+              <circle class="sc-dust d3" cx="180" cy="62" r="9" fill="#DDB97D" stroke="#7A5530" stroke-width="2"/>
+              <circle class="sc-dust d4" cx="190" cy="56" r="11" fill="#DDB97D" stroke="#7A5530" stroke-width="2"/>
+              <circle class="sc-dust d5" cx="174" cy="64" r="8" fill="#DDB97D" stroke="#7A5530" stroke-width="2"/>
+              <circle class="sc-dust d6" cx="196" cy="60" r="10" fill="#DDB97D" stroke="#7A5530" stroke-width="2"/>
+            </g>
+            <g class="sc-carbody">
+              <g class="sc-lights">
+                <path class="sc-beam" d="M6 28 L-150 0 L-150 72 L6 38 Z" fill="#FFE98A" opacity=".7"/>
+                <circle cx="7" cy="33" r="10" fill="#FFF6B0" opacity=".9"/>
+              </g>
+              <!-- firewood + rolled rug in the bed -->
+              <rect x="102" y="10" width="40" height="8" rx="4" fill="#8C5A2B" stroke="#1E1E1E" stroke-width="2.5"/>
+              <rect x="112" y="3"  width="36" height="8" rx="4" fill="#A86B33" stroke="#1E1E1E" stroke-width="2.5"/>
+              <rect x="146" y="8"  width="20" height="12" rx="6" fill="#2E6E8E" stroke="#1E1E1E" stroke-width="2.5"/>
+              <path d="M149 9 v10 M155 8 v12 M161 9 v10" stroke="#E8C14A" stroke-width="2"/>
+              <!-- body -->
+              <path d="M4 32 Q4 25 11 24 L44 22 L54 3 Q56 0 61 0 L90 0 Q95 0 95 5 L95 22 L168 22 Q173 22 173 27 L173 50 Q173 56 167 56 L9 56 Q4 56 4 50 Z" fill="#D7262B" stroke="#1E1E1E" stroke-width="4" stroke-linejoin="round"/>
+              <path d="M6 44 L171 44" stroke="#9E1A1E" stroke-width="6"/>
+              <path d="M95 22 L95 50 M131 26 L131 50" stroke="#1E1E1E" stroke-width="2.5"/>
+              <path d="M58 6 L89 6 L89 20 L50 20 Z" fill="#7FD3E8" stroke="#1E1E1E" stroke-width="3.5" stroke-linejoin="round"/>
+              <rect x="64" y="25" width="10" height="3" rx="1.5" fill="#1E1E1E"/>
+              <rect x="0" y="45" width="14" height="8" rx="2" fill="#C9C9C9" stroke="#1E1E1E" stroke-width="2.5"/>
+              <rect x="164" y="45" width="12" height="8" rx="2" fill="#C9C9C9" stroke="#1E1E1E" stroke-width="2.5"/>
+              <circle cx="8" cy="33" r="5" fill="#FFE14D" stroke="#1E1E1E" stroke-width="2.5"/>
+              <rect x="168" y="30" width="5" height="7" fill="#FF6A3D" stroke="#1E1E1E" stroke-width="1.5"/>
+              <!-- driver -->
+              <circle cx="76" cy="14" r="6" fill="#F2C49B" stroke="#1E1E1E" stroke-width="2"/>
+              <path d="M69 12 Q76 1 83 12 Z" fill="#fff" stroke="#1E1E1E" stroke-width="1.8"/>
+              <circle cx="73.5" cy="14" r="2.4" fill="#fff" stroke="#1E1E1E" stroke-width="1"/><circle cx="73" cy="14" r=".9" fill="#1E1E1E"/>
+              <circle cx="78.5" cy="14" r="2.4" fill="#fff" stroke="#1E1E1E" stroke-width="1"/><circle cx="79" cy="14.4" r=".9" fill="#1E1E1E"/>
+            </g>
+            <g class="sc-wheel"><circle cx="36" cy="58" r="15" fill="#2B2B2B" stroke="#1E1E1E" stroke-width="3"/><circle cx="36" cy="58" r="7" fill="#C9C9C9" stroke="#1E1E1E" stroke-width="2"/><path d="M36 51 V65 M29 58 H43" stroke="#1E1E1E" stroke-width="2.5"/></g>
+            <g class="sc-wheel"><circle cx="142" cy="58" r="15" fill="#2B2B2B" stroke="#1E1E1E" stroke-width="3"/><circle cx="142" cy="58" r="7" fill="#C9C9C9" stroke="#1E1E1E" stroke-width="2"/><path d="M142 51 V65 M135 58 H149" stroke="#1E1E1E" stroke-width="2.5"/></g>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <div class="scene bad" id="sceneBad" data-phase="day" role="img" aria-label="رسم كرتوني: رجل تدفنه الرمال لأن الجو غير مناسب للكشتة" hidden>
+      <span class="scene-cap">🌪️ الرمال بتدفنك! خلك بالبيت</span>
+      <svg viewBox="0 0 600 170" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+        <defs>
+          <filter id="scWobbleB" x="-25%" y="-40%" width="150%" height="180%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="2" seed="9"/>
+            <feDisplacementMap in="SourceGraphic" scale="3" xChannelSelector="R" yChannelSelector="G"/>
+          </filter>
+        </defs>
+        <g class="sc-stars" fill="#FFF6D0">
+          <circle class="sc-star" cx="60" cy="24" r="1.6"/><circle class="sc-star t2" cx="140" cy="44" r="1.2"/>
+          <circle class="sc-star t3" cx="470" cy="18" r="1.8"/><circle class="sc-star" cx="540" cy="46" r="1.3"/>
+          <circle class="sc-star t2" cx="220" cy="14" r="1.4"/><circle class="sc-star t3" cx="-80" cy="34" r="1.5"/><circle class="sc-star" cx="690" cy="30" r="1.5"/>
+        </g>
+        <g stroke="#F3DDB0" stroke-linecap="round" opacity=".75">
+          <line class="sc-streak"    x1="0" y1="30"  x2="70"  y2="34"  stroke-width="3"/>
+          <line class="sc-streak s2" x1="0" y1="62"  x2="110" y2="66"  stroke-width="2"/>
+          <line class="sc-streak s3" x1="0" y1="92"  x2="80"  y2="95"  stroke-width="3"/>
+          <line class="sc-streak s4" x1="0" y1="18"  x2="50"  y2="20"  stroke-width="2"/>
+          <line class="sc-streak s5" x1="0" y1="112" x2="90"  y2="115" stroke-width="2"/>
+        </g>
+        <rect x="-900" y="116" width="2400" height="80" fill="#C4925A"/>
+        <path d="M0 120 C80 104 150 112 220 118 C320 126 420 100 600 114 L600 170 L0 170 Z" fill="#C4925A"/>
+        <g class="sc-guy" filter="url(#scWobbleB)">
+          <g class="sc-bubble" style="transform-origin:372px 34px">
+            <path d="M340 14 h86 a10 10 0 0 1 10 10 v20 a10 10 0 0 1 -10 10 h-58 l-12 12 l2 -12 h-18 a10 10 0 0 1 -10 -10 v-20 a10 10 0 0 1 10 -10 z" fill="#fff" stroke="#2B2B2B" stroke-width="2"/>
+            <text x="383" y="40" text-anchor="middle" font-size="15" font-weight="800" fill="#2B2B2B" font-family="Thmanyah Sans Web, Cairo, sans-serif">ألحقوووني!</text>
+          </g>
+          <g class="sc-arm-l"><path d="M284 92 L262 58" stroke="#F7F5EE" stroke-width="11" stroke-linecap="round"/><circle cx="261" cy="55" r="7" fill="#E9B98D" stroke="#2B2B2B" stroke-width="1.5"/></g>
+          <g class="sc-arm-r"><path d="M316 92 L338 58" stroke="#F7F5EE" stroke-width="11" stroke-linecap="round"/><circle cx="339" cy="55" r="7" fill="#E9B98D" stroke="#2B2B2B" stroke-width="1.5"/></g>
+          <path d="M278 84 Q300 76 322 84 L328 170 L272 170 Z" fill="#F7F5EE" stroke="#1E1E1E" stroke-width="3.6"/>
+          <path d="M274 66 Q274 32 300 32 Q326 32 326 66 L332 94 Q300 82 268 94 Z" fill="#fff" stroke="#1E1E1E" stroke-width="3.6" stroke-linejoin="round"/>
+          <path d="M282 41 h36 M273 84 l8 -3 M319 81 l8 3" stroke="#D23B35" stroke-width="2.2" stroke-dasharray="4 3"/>
+          <circle cx="300" cy="64" r="16" fill="#E9B98D" stroke="#1E1E1E" stroke-width="3.6"/>
+          <ellipse cx="300" cy="38" rx="21" ry="5" fill="none" stroke="#1E1E1E" stroke-width="4"/>
+          <circle cx="292" cy="61" r="6.5" fill="#fff" stroke="#1E1E1E" stroke-width="2"/><circle cx="291" cy="60" r="1.6" fill="#1E1E1E"/>
+          <circle cx="308" cy="62" r="5.5" fill="#fff" stroke="#1E1E1E" stroke-width="2"/><circle cx="309" cy="63" r="1.4" fill="#1E1E1E"/>
+          <path d="M292 70 Q300 66 308 70" stroke="#2B2B2B" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <ellipse cx="300" cy="76" rx="4" ry="5" fill="#7A2320"/>
+        </g>
+        <path d="M150 170 L150 140 C200 112 250 118 300 120 C350 118 400 112 450 140 L450 170 Z" fill="#D9AE70"/>
+        <rect x="-900" y="150" width="2400" height="40" fill="#CFA064"/>
+        <path d="M0 150 C120 140 200 156 300 150 C420 142 500 158 600 148 L600 170 L0 170 Z" fill="#CFA064"/>
+        <g fill="#F1D6A2">
+          <circle class="sc-grain"    cx="240" cy="40" r="2.5"/>
+          <circle class="sc-grain g2" cx="270" cy="30" r="2"/>
+          <circle class="sc-grain g3" cx="220" cy="50" r="2.5"/>
+          <circle class="sc-grain g4" cx="300" cy="20" r="2"/>
+        </g>
+      </svg>
     </div>
   </section>
 
@@ -638,6 +864,18 @@
   function iconSvg(id, size){
     return '<svg class="wicon" width="'+size+'" height="'+size+'" aria-hidden="true"><use href="#ic-'+id+'"></use></svg>';
   }
+  function isRainCode(c){ return (c>=51 && c<=67) || (c>=80 && c<=82) || c>=95; }
+  function hm(iso){ var t=String(iso).slice(11,16).split(":"); return +t[0] + (+t[1])/60; }
+  // sunrise/sunset per date from Open-Meteo; fallback = typical Buraidah October times
+  var SUN = null;
+  function sunFor(dateS){ return (SUN && SUN[dateS]) || {rise:5.95, set:17.6}; }
+  function timePhase(h, sun){
+    if(h >= sun.rise-0.9 && h < sun.rise+0.4) return "dawn";
+    if(h >= sun.rise+0.4 && h < 15) return "day";
+    if(h >= 15 && h < sun.set-0.5) return "asr";
+    if(h >= sun.set-0.5 && h < sun.set+0.75) return "sunset";
+    return "night";
+  }
   function condClassFor(sky, night){
     if(sky==="dust" || sky==="sandstorm") return "dusty";
     if(sky==="cloudy" || sky==="partly") return "cloudy";
@@ -715,7 +953,7 @@
   }
   function pickHours(day, dayIdx, choice){
     if(choice==="now" && dayIdx===0){
-      if(CURRENT) return [{t:CURRENT.time, wind:CURRENT.wind, sky:CURRENT.sky, temp:CURRENT.temp, live:true}];
+      if(CURRENT) return [{t:CURRENT.time, wind:CURRENT.wind, sky:CURRENT.sky, temp:CURRENT.temp, rain:!!CURRENT.rain, live:true}];
       return [nearestHour(day, today)];
     }
     return slotsIn(day, WINDOWS[choice==="isha"?"isha":"asr"]);
@@ -750,10 +988,25 @@
     document.getElementById("okPhoto").hidden = !r.ok;
     var bv = document.getElementById("badVideo"), vid = document.getElementById("badVid");
     bv.hidden = r.ok;
+    document.getElementById("sceneOk").hidden = !r.ok;
+    document.getElementById("sceneBad").hidden = r.ok;
+    var hNow = new Date().getHours()+new Date().getMinutes()/60;
+    var scenePhase = timeChoice==="isha" ? "night" : timeChoice==="asr" ? "asr" : (activeDay===0 ? ((hNow>=18.5||hNow<5.5) ? "night" : (hNow>=15 ? "asr" : "day")) : "asr");
+    document.getElementById("sceneOk").setAttribute("data-phase", scenePhase);
+    document.getElementById("sceneBad").setAttribute("data-phase", scenePhase);
+    document.getElementById("sceneOkCap").textContent = scenePhase==="night" ? "🌙 ولّع الأنوار.. كشتة سمر" : scenePhase==="asr" ? "🛻 الجو رايق يالنشمي" : "🛻 الجو رايق.. حرّك الونيت";
     try{ if(r.ok){ vid.pause(); } else { var pp = vid.play(); if(pp && pp.catch) pp.catch(function(){}); } }catch(e){}
     var night = isNightHour(hour.t);
     var heroIconId = iconIdFor(hour.sky, night);
-    document.body.setAttribute("data-cond", condClassFor(hour.sky, night));
+    var nowD = new Date(), hNow = nowD.getHours()+nowD.getMinutes()/60;
+    var bgTime = (timeChoice==="isha") ? "night" : (timeChoice==="asr") ? "asr"
+               : (activeDay===0 ? timePhase(hNow, sunFor(dateStr(nowD))) : "day");
+    var bgCond = hrs.some(function(h){ return h.rain; }) ? "rain"
+               : (hour.sky==="dust"||hour.sky==="sandstorm") ? "dusty"
+               : (hour.sky==="cloudy") ? "cloudy" : "clear";
+    document.body.setAttribute("data-time", bgTime);
+    document.body.setAttribute("data-cond", bgCond);
+    if(bgTime==="night"||bgTime==="sunset"||bgTime==="dawn") document.body.setAttribute("data-dark",""); else document.body.removeAttribute("data-dark");
     document.getElementById("heroSection").className = "hero " + (r.ok?"state-ok":"state-bad");
     document.getElementById("verdictTitle").textContent = r.ok ? "مناسب للكشتة" : "غير مناسب للكشتة";
     document.getElementById("verdictSub").textContent = "الرياح "+(hrs.length>1?'حتى ':'')+maxWind+" كم/س";
@@ -771,7 +1024,7 @@
     document.getElementById("heroTemp").innerHTML = tempTxt+'<small>°</small>';
     if(isNowView && CURRENT) document.getElementById("heroLabel").textContent = "الآن في بريدة · قراءة الساعة "+CURRENT.time;
     else if(isNowView && LIVE_STATE==="loading") document.getElementById("heroLabel").textContent = "الآن في بريدة · جاري جلب القراءة…";
-    document.getElementById("heroCond").textContent = SKY_AR[hour.sky]+" "+SKY_ICON[hour.sky]+
+    document.getElementById("heroCond").textContent = SKY_AR[hour.sky]+" "+((night && hour.sky==="clear") ? "🌙" : (night && hour.sky==="partly") ? "☁️" : SKY_ICON[hour.sky])+
       (isNowView && CURRENT && typeof CURRENT.feels==="number" ? " · المحسوسة "+Math.round(CURRENT.feels)+"°" : "")+
       " · العظمى "+day.max+"° · الصغرى "+day.min+"°";
 
@@ -1012,7 +1265,7 @@
   var BURAIDAH_LAT = 26.326, BURAIDAH_LON = 43.975;
   var OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast?latitude="+BURAIDAH_LAT+"&longitude="+BURAIDAH_LON+
     "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m"+
-    "&hourly=temperature_2m,wind_speed_10m,weathercode,precipitation&wind_speed_unit=kmh&timezone=Asia%2FRiyadh&forecast_days=6";
+    "&daily=sunrise,sunset&hourly=temperature_2m,wind_speed_10m,weathercode,precipitation,precipitation_probability&wind_speed_unit=kmh&timezone=Asia%2FRiyadh&forecast_days=6";
   var WTTR_URL = "https://wttr.in/Buraidah?format=j1";
 
   function wmoToSky(code){
@@ -1027,11 +1280,14 @@
     for(var i=0;i<h.time.length;i++){
       var datePart = h.time[i].slice(0,10);
       var hour = parseInt(h.time[i].slice(11,13),10);
-      if(!byDate[datePart]) byDate[datePart] = {date:datePart, span:3, hours:[], temps:[], rain:false};
+      if(!byDate[datePart]) byDate[datePart] = {date:datePart, span:3, hours:[], temps:[], rain:false, rainProb:null, rainMM:0};
       var wc = h.weathercode[i], pr = h.precipitation ? h.precipitation[i] : 0;
+      var pp = h.precipitation_probability ? h.precipitation_probability[i] : null;
+      if(typeof pp==="number") byDate[datePart].rainProb = Math.max(byDate[datePart].rainProb||0, pp);
+      if(typeof pr==="number") byDate[datePart].rainMM += pr;
       if((wc>=51 && wc<=67) || (wc>=80 && wc<=82) || wc>=95 || pr>=0.2) byDate[datePart].rain = true;
       if(hour % 3 !== 0) continue;
-      byDate[datePart].hours.push({t:pad2(hour)+":00", wind:Math.round(h.wind_speed_10m[i]), sky:wmoToSky(h.weathercode[i]), temp:h.temperature_2m[i]});
+      byDate[datePart].hours.push({t:pad2(hour)+":00", wind:Math.round(h.wind_speed_10m[i]), sky:wmoToSky(h.weathercode[i]), temp:h.temperature_2m[i], rain:isRainCode(h.weathercode[i]) || (h.precipitation && h.precipitation[i]>=0.2)});
       byDate[datePart].temps.push(h.temperature_2m[i]);
     }
     var dates = Object.keys(byDate).sort();
@@ -1077,6 +1333,17 @@
   }
 
   // rain from wttr.in: any hour with measurable rain or a rain/shower/thunder description
+  // highest hourly chance of rain per day from wttr.in (backup when Open-Meteo has no probability)
+  function wttrRainProb(json){
+    var map = {};
+    (json.weather||[]).forEach(function(day){
+      (day.hourly||[]).forEach(function(h){
+        var c = parseFloat(h.chanceofrain);
+        if(!isNaN(c)) map[day.date] = Math.max(map[day.date]||0, c);
+      });
+    });
+    return map;
+  }
   function wttrRainDates(json){
     var set = {};
     (json.weather||[]).forEach(function(day){
@@ -1093,11 +1360,16 @@
     var el = document.getElementById("rainLine");
     var day = FORECAST.filter(function(d){ return d.date===dateStr(new Date()); })[0];
     if(!day){ el.hidden = true; return; }
-    var wet = !!day.rain;
+    var prob = (typeof day.rainProb==="number") ? Math.round(day.rainProb) : null;
+    var wet = !!day.rain || (prob!==null && prob>=50);
     el.className = "rain-line "+(wet?"wet":"dry");
-    el.innerHTML = wet
-      ? '<span class="ri">🌧️</span><span>الله يجيب الخير<small>فيه حالة مطرية متوقعة اليوم في بريدة</small></span>'
-      : '<span class="ri">🌵</span><span>الشكوى لله ماحولك مطر الله يغيثنا<small>ما فيه أمطار متوقعة اليوم في بريدة</small></span>';
+    var mm = day.rainMM>=0.1 ? " · الكمية المتوقعة "+(Math.round(day.rainMM*10)/10)+" ملم" : "";
+    el.innerHTML = (wet
+      ? '<span class="ri">🌧️</span><span>الله يجيب الخير<small>فيه حالة مطرية متوقعة اليوم في بريدة'+mm+'</small></span>'
+      : '<span class="ri">🌵</span><span>الشكوى لله ماحولك مطر الله يغيثنا<small>ما فيه أمطار متوقعة اليوم في بريدة</small></span>') +
+      (prob===null ? '' :
+        '<span class="rain-prob" title="أعلى احتمال لهطول المطر خلال اليوم"><span class="rp-num">'+prob+'%</span>'+
+        '<span class="rp-lbl">نسبة الأمطار اليوم<span class="rp-bar"><i style="width:'+Math.max(2,prob)+'%"></i></span></span></span>');
     el.hidden = false;
   }
 
@@ -1144,7 +1416,10 @@
       var cur = null;
       if(om && om.current && typeof om.current.temperature_2m==="number"){
         cur = {temp:om.current.temperature_2m, feels:om.current.apparent_temperature, wind:Math.round(om.current.wind_speed_10m),
-               sky:wmoToSky(om.current.weather_code), time:String(om.current.time||"").slice(11,16) || stamp};
+               sky:wmoToSky(om.current.weather_code), rain:isRainCode(om.current.weather_code), time:String(om.current.time||"").slice(11,16) || stamp};
+      }
+      if(om && om.daily && om.daily.sunrise){
+        SUN = {}; om.daily.time.forEach(function(d,k){ SUN[d] = {rise:hm(om.daily.sunrise[k]), set:hm(om.daily.sunset[k])}; });
       }
       var wc0 = wttr && wttr.current_condition && wttr.current_condition[0];
       if(!cur && wc0){
@@ -1156,7 +1431,11 @@
 
       if(fresh && fresh.length && wttr){
         var wetDates = wttrRainDates(wttr);
-        fresh.forEach(function(d){ if(wetDates[d.date]) d.rain = true; });
+        var wProb = wttrRainProb(wttr);
+        fresh.forEach(function(d){
+          if(wetDates[d.date]) d.rain = true;
+          if((d.rainProb==null) && wProb[d.date]!=null) d.rainProb = wProb[d.date];
+        });
       }
       if(fresh && fresh.length){
         FORECAST.length = 0;
