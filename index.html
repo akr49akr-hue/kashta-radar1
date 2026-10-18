@@ -515,6 +515,23 @@
   @keyframes vtOutCard{to{opacity:0;transform:scale(.92) rotate(-3deg);}}
   @keyframes vtInCard{from{opacity:0;transform:scale(.92) rotate(3deg);}}
   @media (prefers-reduced-motion: reduce){ ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important;} }
+
+  /* ================= عرجون card ================= */
+  .arj{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap;}
+  .arj-ic{width:86px;height:86px;flex:none;}
+  .arj-body{flex:1;min-width:220px;}
+  .arj-status{font-family:"Thmanyah Sans Web","Cairo",sans-serif;font-size:1.6rem;font-weight:900;line-height:1.25;}
+  .arj-status.go{color:#2E8B57;} .arj-status.wait{color:#B7791F;} .arj-status.no{color:var(--text-soft);}
+  body[data-dark] .arj-status.go{color:#7BE3A0;} body[data-dark] .arj-status.wait{color:#FFD27A;}
+  .arj-sub{margin-top:6px;font-size:.95rem;color:var(--text-soft);line-height:1.7;}
+  .arj-tl{position:relative;margin:18px 4px 6px;height:10px;border-radius:999px;background:rgba(127,140,160,.22);}
+  .arj-win{position:absolute;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,#8FD694,#3FA66B);}
+  .arj-now{position:absolute;top:-6px;width:4px;height:22px;border-radius:2px;background:var(--text);transform:translateX(50%);}
+  .arj-rain{position:absolute;top:-7px;transform:translateX(50%);font-size:.95rem;}
+  .arj-lbl{display:flex;justify-content:space-between;font-size:.76rem;color:var(--text-muted);margin-top:6px;}
+  .arj-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;}
+  .arj-chips span{font-size:.8rem;background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:4px 11px;}
+  .arj-note{margin-top:10px;font-size:.76rem;color:var(--text-muted);line-height:1.7;}
 </style>
 
 <div class="weather-fx" aria-hidden="true">
@@ -806,6 +823,34 @@
         <p class="moon-sub" id="moonSub"></p>
         <div class="moon-stats" id="moonStats"></div>
       </div>
+    </div>
+  </section>
+
+  <section id="arjoonSection">
+    <div class="sec-head">
+      <h3>موسم العرجون 🍄</h3>
+      <p>حساب تقريبي من أمطار بريدة خلال الشهرين الماضيين</p>
+    </div>
+    <div class="card" style="padding:16px 18px">
+      <div class="arj">
+        <svg class="arj-ic" viewBox="0 0 90 90" aria-hidden="true">
+          <ellipse cx="45" cy="80" rx="30" ry="6" fill="#D9B37A"/>
+          <path d="M40 80 Q38 58 41 40 L49 40 Q52 58 50 80 Z" fill="#F4EBDD" stroke="#1E1E1E" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M30 42 Q28 14 45 8 Q62 14 60 42 Q45 48 30 42 Z" fill="#FBF6EC" stroke="#1E1E1E" stroke-width="3.2" stroke-linejoin="round"/>
+          <path d="M37 22 q3 -4 6 -1 M48 30 q3 -3 6 0 M36 34 q2 -2 5 0" stroke="#C9B48F" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+          <path d="M18 80 q4 -6 8 0 M64 80 q4 -6 8 0" stroke="#B8915A" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="arj-body">
+          <div class="arj-status no" id="arjStatus">جاري حساب الموسم…</div>
+          <p class="arj-sub" id="arjSub"></p>
+          <div id="arjTlWrap" hidden>
+            <div class="arj-tl" id="arjTl"></div>
+            <div class="arj-lbl" id="arjLbl"></div>
+          </div>
+          <div class="arj-chips" id="arjChips"></div>
+        </div>
+      </div>
+      <p class="arj-note">الحساب تقريبي: العرجون يطلع غالباً بعد أسبوعين إلى أربعة أسابيع من مطر مؤثر (١٠ ملم فأكثر خلال ٣ أيام)، في الأراضي الرملية والفياض، ومع جو معتدل، وموسمه الأساسي الربيع. لا تأكل إلا ما تعرفه يقيناً: خذه طرياً وداخله أبيض، واتركه إذا اسودّ داخله.</p>
     </div>
   </section>
 
@@ -1730,6 +1775,99 @@
     });
     t.finished.finally(function(){ busy = false; });
   }, true);
+})();
+
+// ---------- موسم العرجون: from past rainfall ----------
+(function(){
+  var LAT=26.326, LON=43.975, MIN_MM=10, STRONG_MM=20;
+  var URL="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LON+
+          "&daily=precipitation_sum,temperature_2m_max&past_days=60&forecast_days=7&timezone=Asia%2FRiyadh";
+  var MON=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+  function d0(s){ var p=s.split("-"); return new Date(+p[0],+p[1]-1,+p[2]); }
+  function iso(d){ var m=d.getMonth()+1,x=d.getDate(); return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(x<10?"0":"")+x; }
+  function addD(d,n){ var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+  function fmt(d){ return d.getDate()+" "+MON[d.getMonth()]; }
+  function days(a,b){ return Math.round((b-a)/864e5); }
+  function nDays(n){ n=Math.abs(n); return n===1?"يوم":n===2?"يومين":(n>=3&&n<=10)?n+" أيام":n+" يوماً"; }
+  function seasonOf(d){ var m=d.getMonth()+1; return (m>=2&&m<=4)?"peak":(m===1||m===5)?"edge":(m>=10&&m<=12)?"early":"summer"; }
+  var $=function(id){ return document.getElementById(id); };
+
+  function chip(t){ var s=document.createElement("span"); s.textContent=t; return s; }
+
+  function render(json){
+    var t=json.daily.time, pr=json.daily.precipitation_sum.map(function(v){return v||0;}), tx=json.daily.temperature_2m_max;
+    var today=d0(iso(new Date())), ti=t.indexOf(iso(today)); if(ti<0) ti=t.length-8;
+    // latest rain event: last day whose 3-day total reaches MIN_MM (looking at past + forecast)
+    var ev=null;
+    for(var i=t.length-1;i>=2;i--){
+      var sum3=pr[i]+pr[i-1]+pr[i-2];
+      if(sum3>=MIN_MM){
+        // grow the event to include touching rainy days
+        var a=i-2,b=i; while(a>0&&pr[a-1]>=1) a--; while(b<t.length-1&&pr[b+1]>=1) b++; while(b>a&&pr[b]<1) b--; while(a<b&&pr[a]<1) a++;
+        var tot=0; for(var k=a;k<=b;k++) tot+=pr[k];
+        ev={date:d0(t[b]), mm:Math.round(tot*10)/10, future:b>ti}; break;
+      }
+    }
+    var past60=0; for(var j=0;j<=ti;j++) past60+=pr[j]; past60=Math.round(past60*10)/10;
+    var next7=[]; for(var q=ti;q<Math.min(t.length,ti+7);q++) if(typeof tx[q]==="number") next7.push(tx[q]);
+    var avgMax=next7.length?Math.round(next7.reduce(function(x,y){return x+y;},0)/next7.length):null;
+    var fcRain=0, fcDay=null; for(var f=ti+1;f<t.length;f++){ if(pr[f]>=3 && !fcDay) fcDay=d0(t[f]); fcRain+=pr[f]; } fcRain=Math.round(fcRain*10)/10;
+
+    var st=$("arjStatus"), sub=$("arjSub"), chips=$("arjChips"), tlw=$("arjTlWrap");
+    chips.textContent=""; tlw.hidden=true;
+    chips.appendChild(chip("أمطار آخر ٦٠ يوماً: "+past60+" ملم"));
+    if(avgMax!==null) chips.appendChild(chip("متوسط العظمى هالأسبوع: "+avgMax+"°"));
+
+    if(!ev){
+      st.className="arj-status no"; st.textContent="ما فيه مطر مؤثر بعد";
+      sub.textContent="ما نزل على بريدة خلال الشهرين الماضيين مطر يكفي لطلوع العرجون (يحتاج ١٠ ملم فأكثر)."+
+        (fcRain>=MIN_MM&&fcDay ? " لكن فيه مطر متوقع حوالي "+fcRain+" ملم من "+fmt(fcDay)+"؛ لو نزل، يُتوقع العرجون تقريباً بين "+fmt(addD(fcDay,14))+" و"+fmt(addD(fcDay,28))+"." : " الله يغيثنا.");
+      return;
+    }
+    var strong=ev.mm>=STRONG_MM, ws=addD(ev.date,14), we=addD(ev.date,strong?35:28);
+    var season=seasonOf(ws), toStart=days(today,ws), toEnd=days(today,we);
+    chips.insertBefore(chip((ev.future?"مطر متوقع: ":"آخر مطر مؤثر: ")+fmt(ev.date)+" · "+ev.mm+" ملم"), chips.firstChild);
+    chips.appendChild(chip(season==="peak"?"🌼 في عز موسمه":season==="edge"?"طرف الموسم":season==="early"?"قبل موسمه (الربيع)":"وقت حر"));
+
+    var hot = avgMax!==null && avgMax>35, cold = avgMax!==null && avgMax<15;
+    var tempNote = hot ? " الحرارة عالية هالأيام وتقلل فرصه." : cold ? " البرد قد يؤخر طلوعه." : "";
+    var seasonNote = season==="early" ? " وهو خارج موسمه المعتاد، فالفرصة أقل؛ مطر الوسم بشارة خير لموسم الربيع."
+                   : season==="summer" ? " والوقت حار، فالفرصة ضعيفة." : "";
+
+    if(toStart>0){
+      st.className="arj-status wait"; st.textContent="يُتوقع بعد "+nDays(toStart);
+      sub.textContent=(ev.future?"لو نزل المطر المتوقع":"بعد مطر "+fmt(ev.date))+" (حوالي "+ev.mm+" ملم)، يُتوقع ظهور العرجون تقريباً بين "+fmt(ws)+" و"+fmt(we)+"."+seasonNote+tempNote;
+    } else if(toEnd>=0){
+      st.className="arj-status go"; st.textContent="الحين وقته! 🍄";
+      sub.textContent="من مطر "+fmt(ev.date)+" (حوالي "+ev.mm+" ملم) هذي فترته المتوقعة حتى "+fmt(we)+". دوّر في الأراضي الرملية والفياض اللي جاها المطر."+seasonNote+tempNote;
+    } else {
+      st.className="arj-status no"; st.textContent="فات وقته من آخر مطر";
+      sub.textContent="آخر مطر مؤثر كان "+fmt(ev.date)+"، وفترته المتوقعة انتهت تقريباً "+fmt(we)+". ننتظر المطر الجاي."+
+        (fcRain>=MIN_MM&&fcDay ? " فيه مطر متوقع من "+fmt(fcDay)+"." : "");
+      return;
+    }
+    // timeline: rain day → window end (+4 days margin)
+    var a0=ev.date, a1=addD(we,4), span=days(a0,a1);
+    function pct(d){ return Math.max(0,Math.min(100,days(a0,d)/span*100)); }
+    var tl=$("arjTl"); tl.innerHTML="";
+    var w=document.createElement("i"); w.className="arj-win"; w.style.right=pct(ws)+"%"; w.style.width=(pct(we)-pct(ws))+"%"; tl.appendChild(w);
+    var r=document.createElement("span"); r.className="arj-rain"; r.textContent="🌧️"; r.style.right="0%"; tl.appendChild(r);
+    if(today>=a0 && today<=a1){ var n=document.createElement("i"); n.className="arj-now"; n.style.right=pct(today)+"%"; n.title="اليوم"; tl.appendChild(n); }
+    $("arjLbl").innerHTML="<span>المطر "+fmt(ev.date)+"</span><span>بداية الفترة "+fmt(ws)+"</span><span>النهاية "+fmt(we)+"</span>";
+    tlw.hidden=false;
+  }
+
+  function load(){
+    fetch(URL,{cache:"no-store"}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
+      .then(render)
+      .catch(function(){
+        $("arjStatus").className="arj-status no"; $("arjStatus").textContent="تعذّر جلب بيانات الأمطار";
+        $("arjSub").textContent="تأكد من اتصال الإنترنت، وبنعيد المحاولة تلقائياً.";
+      });
+  }
+  load();
+  setInterval(load, 60*60*1000);
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") load(); });
 })();
 </script>
 
