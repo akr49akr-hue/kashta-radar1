@@ -492,6 +492,29 @@
   /* readable text on see-through glass */
   .page > section .sec-head h3,.hw-temp,.sp-title{text-shadow:0 1px 12px rgba(255,255,255,.35);}
   body[data-dark] .page > section .sec-head h3,body[data-dark] .hw-temp,body[data-dark] .sp-title{text-shadow:0 1px 14px rgba(0,0,0,.45);}
+
+  /* ================= view transitions (Now / Asr / Isha / days) ================= */
+  #heroTemp{view-transition-name:hero-temp;}
+  #heroIconWrap{view-transition-name:hero-icon;}
+  #statusPill{view-transition-name:hero-verdict;}
+  #okPhoto,#badVideo{view-transition-name:hero-media;}
+  #sceneOk,#sceneBad{view-transition-name:hero-scene;}
+  ::view-transition-group(*){animation-duration:.65s;animation-timing-function:cubic-bezier(.22,1,.36,1);}
+  ::view-transition-old(root),::view-transition-new(root){animation-duration:.55s;animation-timing-function:cubic-bezier(.4,0,.2,1);}
+  ::view-transition-old(hero-temp){animation:vtOutUp .3s cubic-bezier(.4,0,1,1) both;}
+  ::view-transition-new(hero-temp){animation:vtInUp .55s cubic-bezier(.22,1,.36,1) .08s both;}
+  ::view-transition-old(hero-icon){animation:vtOutSpin .35s cubic-bezier(.4,0,1,1) both;}
+  ::view-transition-new(hero-icon){animation:vtInSpin .6s cubic-bezier(.34,1.4,.64,1) .1s both;}
+  ::view-transition-old(hero-scene),::view-transition-new(hero-scene){animation-duration:.6s;animation-timing-function:cubic-bezier(.4,0,.2,1);mix-blend-mode:normal;}
+  ::view-transition-old(hero-media){animation:vtOutCard .35s cubic-bezier(.4,0,1,1) both;}
+  ::view-transition-new(hero-media){animation:vtInCard .6s cubic-bezier(.22,1,.36,1) .1s both;}
+  @keyframes vtOutUp{to{opacity:0;transform:translateY(-14px);filter:blur(3px);}}
+  @keyframes vtInUp{from{opacity:0;transform:translateY(16px);filter:blur(3px);}}
+  @keyframes vtOutSpin{to{opacity:0;transform:scale(.7) rotate(-25deg);}}
+  @keyframes vtInSpin{from{opacity:0;transform:scale(.6) rotate(25deg);}}
+  @keyframes vtOutCard{to{opacity:0;transform:scale(.92) rotate(-3deg);}}
+  @keyframes vtInCard{from{opacity:0;transform:scale(.92) rotate(3deg);}}
+  @media (prefers-reduced-motion: reduce){ ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important;} }
 </style>
 
 <div class="weather-fx" aria-hidden="true">
@@ -1679,6 +1702,7 @@
     });
   }
   document.addEventListener("click", function(e){
+    if(e.__vt) return;
     var b = e.target.closest && e.target.closest("#viewTabs button, #timeTabs button, .day-sum, #radarTabs button");
     if(!b) return;
     requestAnimationFrame(function(){
@@ -1686,6 +1710,26 @@
       else glide(".hero-main, .hero-media, .scene:not([hidden]), #chartCaption, .chart-wrap, #hourTable");
     });
   });
+})();
+
+// ---------- view transitions: Now / Asr / Isha and day changes morph smoothly ----------
+(function(){
+  if(!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var busy = false;
+  document.addEventListener("click", function(e){
+    if(e.__vt) return;
+    var b = e.target.closest && e.target.closest("#timeTabs button, #viewTabs button, .day-sum");
+    if(!b || b.disabled || b.classList.contains("active")) return;
+    e.stopPropagation(); e.preventDefault();
+    if(busy) return;
+    busy = true;
+    var t = document.startViewTransition(function(){
+      var ev = new MouseEvent("click", {bubbles:true, cancelable:true});
+      ev.__vt = true;
+      b.dispatchEvent(ev);
+    });
+    t.finished.finally(function(){ busy = false; });
+  }, true);
 })();
 </script>
 
