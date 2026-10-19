@@ -620,6 +620,23 @@
   .page > section.hero::after{animation:none!important;}
   /* pause decorative loops when their section is off screen or the tab is hidden */
   .paused *,.paused::before,.paused::after,html.tab-hidden *{animation-play-state:paused!important;}
+
+  /* ================= rain this week (compact card) ================= */
+  .wk{display:flex;flex-direction:column;gap:12px;}
+  .wk-sum{display:flex;align-items:center;gap:12px;font-size:1rem;font-weight:700;line-height:1.5;}
+  .wk-sum .wk-ic{font-size:1.8rem;line-height:1;flex:none;}
+  .wk-sum small{display:block;font-weight:500;font-size:.85rem;color:var(--text-soft);}
+  .wk-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;}
+  @media (max-width:520px){ .wk-days{gap:4px;} .wk-d{padding:7px 1px;font-size:.68rem;} .wk-d .ty{font-size:.6rem;} .wk-d .e{font-size:1.1rem;} }
+  .wk-d{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border);font-size:.74rem;text-align:center;}
+  .wk-d.wet{background:rgba(46,134,222,.14);border-color:rgba(46,134,222,.4);}
+  body[data-dark] .wk-d.wet{background:rgba(120,175,255,.16);border-color:rgba(150,195,255,.35);}
+  .wk-d b{font-size:.8rem;}
+  .wk-d .e{font-size:1.25rem;line-height:1.2;}
+  .wk-d .pp{font-weight:700;}
+  .wk-d .ty{color:var(--text-soft);font-size:.68rem;min-height:2.2em;line-height:1.1;}
+  .wk-bar{width:70%;height:4px;border-radius:999px;background:rgba(127,140,160,.25);overflow:hidden;}
+  .wk-bar i{display:block;height:100%;background:#2E86DE;border-radius:999px;}
 </style>
 
 <div class="weather-fx" aria-hidden="true"><span class="fx-naqsh"></span>
@@ -912,6 +929,17 @@
         <p class="moon-sub" id="moonSub"></p>
         <div class="moon-stats" id="moonStats"></div>
       </div>
+    </div>
+  </section>
+
+  <section id="weekRainSection">
+    <div class="sec-head">
+      <h3>أمطار هذا الأسبوع</h3>
+      <p>احتمال المطر ونوعه لبريدة خلال ٧ أيام</p>
+    </div>
+    <div class="card wk" style="padding:14px 16px">
+      <div class="wk-sum" id="wkSum"><span class="wk-ic">⏳</span><span>جاري جلب توقعات الأسبوع…</span></div>
+      <div class="wk-days" id="wkDays"></div>
     </div>
   </section>
 
@@ -1979,6 +2007,69 @@
   document.addEventListener("visibilitychange", function(){
     document.documentElement.classList.toggle("tab-hidden", document.visibilityState!=="visible");
   });
+})();
+
+// ---------- rain this week ----------
+(function(){
+  var URL="https://api.open-meteo.com/v1/forecast?latitude=26.326&longitude=43.975"+
+    "&daily=weather_code,precipitation_sum,precipitation_probability_max,precipitation_hours&forecast_days=7&timezone=Asia%2FRiyadh";
+  var WD=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+  var WDs=["أحد","اثنين","ثلاثاء","أربعاء","خميس","جمعة","سبت"];
+  // WMO weather code → Arabic rain type + emoji (null = no rain)
+  function kind(code, mm){
+    var c=code|0, t=null, e="";
+    if(c>=95){ t = c>=96 ? "رعدية مع برَد" : "عواصف رعدية"; e="⛈️"; }
+    else if(c>=80 && c<=82){ t = c===82 ? "زخات غزيرة" : c===81 ? "زخات متوسطة" : "زخات خفيفة"; e="🌦️"; }
+    else if(c>=61 && c<=67){ t = (c===65||c===67) ? "مطر غزير" : (c===63) ? "مطر متوسط" : (c===66) ? "مطر متجمد" : "مطر خفيف"; e="🌧️"; }
+    else if(c>=51 && c<=57){ t = "رذاذ"; e="🌦️"; }
+    else if(mm>=0.5){ t = mm>=10 ? "مطر غزير" : mm>=2 ? "مطر متوسط" : "مطر خفيف"; e="🌧️"; }
+    return t ? {t:t,e:e} : null;
+  }
+  function render(j){
+    var d=j.daily, box=document.getElementById("wkDays"), sum=document.getElementById("wkSum");
+    box.textContent="";
+    var wet=[], todayIso=(function(n){var m=n.getMonth()+1,x=n.getDate();return n.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(x<10?"0":"")+x;})(new Date());
+    d.time.forEach(function(t,i){
+      var p=t.split("-"), dt=new Date(+p[0],+p[1]-1,+p[2]);
+      var mm=Math.round((d.precipitation_sum[i]||0)*10)/10, pp=d.precipitation_probability_max ? (d.precipitation_probability_max[i]||0) : 0;
+      var k=kind(d.weather_code[i], mm);
+      var isWet = !!k && (mm>=0.2 || pp>=40);
+      if(isWet) wet.push({dt:dt,mm:mm,pp:pp,k:k,today:t===todayIso});
+      var el=document.createElement("div"); el.className="wk-d"+(isWet?" wet":"");
+      var name = t===todayIso ? "اليوم" : WDs[dt.getDay()];
+      el.innerHTML='<b></b><span class="e"></span><span class="pp"></span><span class="wk-bar"><i></i></span><span class="ty"></span>';
+      el.children[0].textContent=name;
+      el.children[1].textContent= isWet ? k.e : (d.weather_code[i]>=2 ? "⛅" : "☀️");
+      el.children[2].textContent=pp+"%";
+      el.children[3].firstChild.style.width=Math.max(3,pp)+"%";
+      el.children[4].textContent= isWet ? k.t+(mm>=0.1?" · "+mm+" ملم":"") : "جاف";
+      el.setAttribute("aria-label", WD[dt.getDay()]+": احتمال المطر "+pp+"٪، "+(isWet?k.t+" "+mm+" ملم":"جاف"));
+      box.appendChild(el);
+    });
+    var ic=sum.querySelector(".wk-ic"), tx=sum.children[1];
+    if(!wet.length){
+      ic.textContent="☀️";
+      tx.innerHTML='أسبوع جاف، ما فيه أمطار متوقعة<small></small>';
+      var mx=Math.max.apply(null,(d.precipitation_probability_max||[0]));
+      tx.querySelector("small").textContent="أعلى احتمال للمطر خلال الأسبوع "+mx+"٪";
+    } else {
+      var best=wet.reduce(function(a,b){ return (b.mm>a.mm||(b.mm===a.mm&&b.pp>a.pp))?b:a; });
+      var total=Math.round(wet.reduce(function(a,b){return a+b.mm;},0)*10)/10;
+      ic.textContent=best.k.e;
+      tx.innerHTML='<span></span><small></small>';
+      tx.firstChild.textContent="أمطار متوقعة "+(wet.length===1?"يوم ":"في ")+(wet.length===1?(best.today?"اليوم":WD[best.dt.getDay()]):wet.length+" أيام")+": "+best.k.t;
+      tx.lastChild.textContent="أقواها "+(best.today?"اليوم":"يوم "+WD[best.dt.getDay()])+" باحتمال "+best.pp+"٪ ونحو "+best.mm+" ملم · مجموع الأسبوع "+total+" ملم";
+    }
+  }
+  function load(){
+    fetch(URL,{cache:"no-store"}).then(function(r){ if(!r.ok) throw 0; return r.json(); }).then(render).catch(function(){
+      var sum=document.getElementById("wkSum"); sum.querySelector(".wk-ic").textContent="⚠️";
+      sum.children[1].textContent="تعذّر جلب توقعات الأمطار، بنعيد المحاولة تلقائياً.";
+    });
+  }
+  load();
+  setInterval(load, 60*60*1000);
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState==="visible") load(); });
 })();
 </script>
 
