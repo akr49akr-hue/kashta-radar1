@@ -637,6 +637,40 @@
   .wk-d .ty{color:var(--text-soft);font-size:.68rem;min-height:2.2em;line-height:1.1;}
   .wk-bar{width:70%;height:4px;border-radius:999px;background:rgba(127,140,160,.25);overflow:hidden;}
   .wk-bar i{display:block;height:100%;background:#2E86DE;border-radius:999px;}
+
+  /* ================= folk calendar (الطوالع) ================= */
+  .tq-now{padding:18px 18px 16px;display:flex;flex-direction:column;gap:14px;}
+  .tq-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;}
+  .tq-kicker{font-size:.78rem;color:var(--text-soft);}
+  .tq-name{font-size:2rem;font-weight:800;line-height:1.15;}
+  .tq-tags{display:flex;gap:6px;flex-wrap:wrap;}
+  .tq-tag{font-size:.8rem;padding:4px 10px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:600;}
+  .tq-tag.soft{background:var(--surface-2);color:inherit;border:1px solid var(--border);}
+  .tq-prog{display:flex;flex-direction:column;gap:6px;font-size:.82rem;color:var(--text-soft);}
+  .tq-bar{height:6px;border-radius:999px;background:rgba(127,140,160,.22);overflow:hidden;}
+  .tq-bar i{display:block;height:100%;border-radius:999px;background:var(--accent);}
+  .tq-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+  .tq-stats > div{background:var(--surface-2);border:1px solid var(--border);border-radius:14px;padding:10px 8px;display:flex;flex-direction:column;gap:2px;align-items:center;text-align:center;}
+  .tq-stats small{font-size:.7rem;color:var(--text-soft);}
+  .tq-stats b{font-size:1.15rem;}
+  @media (max-width:520px){ .tq-stats{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  .tq-note{font-size:.9rem;line-height:1.7;padding:10px 12px;border-radius:12px;background:var(--surface-2);border-inline-start:3px solid var(--accent);}
+  .tq-foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:.82rem;color:var(--text-soft);}
+  .tq-hv{font-weight:600;color:inherit;}
+  .tq-all{margin-top:12px;padding:0 16px;}
+  .tq-all summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:14px 0;font-weight:700;}
+  .tq-all summary::-webkit-details-marker{display:none;}
+  .tq-all summary::after{content:"▾";transition:transform .25s;}
+  .tq-all[open] summary::after{transform:rotate(180deg);}
+  .tq-sum-n{margin-inline-start:auto;font-size:.78rem;font-weight:500;color:var(--text-soft);}
+  .tq-sh{display:flex;justify-content:space-between;align-items:baseline;padding:10px 12px;margin:10px -4px 2px;border-radius:12px;font-size:.82rem;}
+  .tq-sh b{font-size:1rem;}
+  .tq-sh.tq-w{background:rgba(96,150,230,.16);} .tq-sh.tq-s{background:rgba(130,190,90,.18);}
+  .tq-sh.tq-su{background:rgba(225,80,60,.16);} .tq-sh.tq-a{background:rgba(240,150,60,.18);}
+  .tq-row:last-child{padding-bottom:16px;}
+  .tq-dj{font-size:.72rem;font-weight:500;color:var(--text-soft);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:1px 8px;}
+  .tq-dur{font-size:.7rem;}
+  .tq-mini{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:.76rem;color:var(--text-soft);}
 </style>
 
 <div class="weather-fx" aria-hidden="true"><span class="fx-naqsh"></span>
@@ -1037,11 +1071,15 @@
   <section>
     <div class="sec-head">
       <h3>التقويم الشعبي</h3>
-      <p>منازل الخريف والشتاء كما يتداولها الرواة — مثل الوسم والمربعانية</p>
+      <p>الطوالع والنجوم على مدار السنة · المصدر: دليل الطوالع والنجوم، إعداد د. عبدالله بن عبدالرحمن المسند</p>
     </div>
-    <div class="card folk-list" id="folkList"></div>
+    <div class="card tq-now" id="tqNow"></div>
+    <details class="card tq-all" id="tqAll">
+      <summary><span>كل الطوالع على مدار السنة</span><span class="tq-sum-n">٢٨ طالعاً · ٤ فصول</span></summary>
+      <div id="tqList"></div>
+    </details>
     <div class="disclaimer">
-      التواريخ أدناه تقريبية ومتعارف عليها شعبياً في الجزيرة العربية، وقد تتقدّم أو تتأخر يوماً أو يومين حسب المصدر الفلكي المعتمد. استخدمها للسياق الثقافي، لا كتنبؤ جوي دقيق.
+      التواريخ ومعدلات الحرارة وطول الليل والنهار مأخوذة من «دليل الطوالع والنجوم» للدكتور عبدالله المسند، وهي معدلات تقريبية لنجد وليست قراءة لطقس اليوم. الطوالع علامات توقيت عند الأولين وليست سبباً للطقس.
     </div>
   </section>
 
@@ -1108,45 +1146,104 @@
     seasonGrid.appendChild(el);
   });
 
-  // ---------- folk calendar ----------
-  var FOLK = [
-    {name:"الوسم", start:[10,6], end:[10,18], note:"أول نجوم الخريف؛ تبدأ معه أمطار تسم الأرض بالنبات الأول. طقس معتدل ومناسب جداً للكشتة."},
-    {name:"الصفري", start:[10,19], end:[11,29], note:"تقلّب بين الحر المتبقي والبرد القادم، ورياح نشطة أحياناً."},
-    {name:"الشبط", start:[11,30], end:[12,12], note:"برودة تتزايد تدريجياً مع ليالٍ طويلة؛ من أوقات الكشتة الجميلة قبل قسوة الشتاء."},
-    {name:"الحسوم", start:[12,13], end:[12,21], note:"رياح قوية وزخات مطر مرتبطة تاريخياً بهذه الفترة؛ تحقق من سرعة الرياح جيداً."},
-    {name:"المربعانية", start:[12,22], end:[1,30], note:"أربعون يوماً هي قلب برد الشتاء وأشده؛ ليالي الكشتة هنا تحتاج تجهيزات دفء كاملة."},
-    {name:"سعد الذابح", start:[1,31], end:[2,12], note:"أول سعود الشتاء؛ البرد لا يزال قارساً لكنه أخف من المربعانية."},
-    {name:"سعد بلع", start:[2,13], end:[2,25], note:"برد متوسط مع بوادر دفء نهاري."},
-    {name:"سعد السعود", start:[2,26], end:[3,10], note:"اعتدال واضح؛ من أفضل نوافذ الكشتة الربيعية."},
-    {name:"سعد الخبايا", start:[3,11], end:[3,23], note:"تخرج فيه الزواحف والحشرات من مخابئها مع دفء الأرض؛ انتبه عند اختيار موقع الكشتة."}
+  // ---------- folk calendar: دليل الطوالع والنجوم (د. عبدالله المسند) ----------
+  // [الطالع, الدارجة, شهر, يوم, عدد الأيام, طول الليل, طول النهار, الصغرى, الكبرى, المتوسط, موافقات, التدفئة/التبريد]
+  var TAWALI = [
+    ["الإكليل","المربعانية",12,7,13,"13:26","10:34",9,23,15.8,"يشتد البرد","h"],
+    ["القلب","المربعانية",12,20,13,"13:30","10:30",7.2,21,14.0,"غاية طول الليل وقصر النهار، غاية قرب الأرض من الشمس، أدنى انخفاض للشمس ظهراً","h"],
+    ["الشولة","المربعانية",1,2,13,"13:27","10:33",6.5,20,13.2,"أبرد أيام السنة، يسمى برد الانصراف","h"],
+    ["النعائم","الشبط",1,15,13,"13:19","10:41",7,20,13.6,"لا يزال البرد على أشده، تبدأ النخيل البواكر بالطلع","h"],
+    ["البلدة","الشبط",1,28,13,"13:05","10:55",6.5,21,13.6,"ابتداء جريان الماء في العود","h"],
+    ["سعد الذابح","العقارب",2,10,13,"12:50","11:10",8.1,20,14.2,"","h"],
+    ["سعد بلع","العقارب",2,23,13,"12:32","11:28",9.7,23,16.5,"","h"],
+    ["سعد السعود","العقارب",3,8,13,"12:12","11:48",12.7,27,19.6,"اعتدال الليل والنهار، تورق الأشجار","m"],
+    ["سعد الأخبية","الحميمين",3,21,13,"11:49","12:11",13.3,26,19.4,"يبدأ النهار بالزيادة، تشرق الشمس من الشرق تماماً وتغرب مع الغرب تماماً","m"],
+    ["المقدم","الحميمين",4,3,13,"11:31","12:29",15.9,30,23.1,"يغرب طالع الصرفة وينصرف البرد، أمطاره غزيرة","m"],
+    ["المؤخر","الذراعين",4,16,13,"11:12","12:48",18,32,25.1,"أمطاره غزيرة","c"],
+    ["الرشا","الذراعين",4,29,13,"10:53","13:07",20.4,36,28.0,"تختفي الثريا في شعاع الشمس غرباً (الكنة)، بداية الحر","c"],
+    ["الشرطين","الثريا",5,12,13,"10:38","13:22",22.7,38,30.5,"تقل المنخفضات الجوية الممطرة","c"],
+    ["البطين","الثريا",5,25,13,"10:25","13:35",22.8,40,31.4,"نهاية موسم الأمطار في نجد، يشتد الحر","c"],
+    ["الثريا","الثريا",6,7,13,"10:17","13:43",23.3,41,32.0,"تبدأ الرياح الشمالية والشمالية الشرقية الثابتة","c"],
+    ["الدبران","التويبع",6,20,13,"10:14","13:46",22.2,36,29.1,"أقصى ارتفاع للشمس ظهراً، غاية طول النهار وقصر الليل، والأرض أبعد ما تكون عن الشمس","c"],
+    ["الهقعة","الجوزاء",7,3,13,"10:17","13:43",22.5,39,31.0,"يبدأ حر الانصراف","c"],
+    ["الهنعة","الجوزاء",7,16,13,"10:24","13:36",24.5,43,33.5,"الحر أشد ما يكون","c"],
+    ["الذراع","المرزم",7,29,13,"10:35","13:25",24,43,33.3,"لا يزال الحر على أشده","c"],
+    ["النثرة","الكليبين",8,11,13,"10:51","13:09",22.9,42,32.4,"","c"],
+    ["الطرف","سهيل",8,24,13,"11:09","12:51",22.5,42,32.0,"وفرة الرطب","c"],
+    ["الجبهة","سهيل",9,6,14,"11:29","12:31",22.4,41,31.5,"","m"],
+    ["الزبرة","سهيل",9,20,13,"11:50","12:10",20.4,38,29.4,"اعتدال الليل والنهار، تشرق الشمس مع الشرق تماماً وتغرب مع الغرب تماماً","m"],
+    ["الصرفة","سهيل",10,3,13,"12:08","11:52",18.6,36,27.4,"قد تنزل الأمطار الخريفية المبكرة","m"],
+    ["العواء","الوسم",10,16,13,"12:28","11:32",17.4,34,25.6,"بداية الأمطار المنبتة للكمأة، تكثر الإصابة بالزكام، وبداية تسخين الماء","m"],
+    ["السماك","الوسم",10,29,13,"12:46","11:14",15.1,30,22.6,"","m"],
+    ["الغفر","الوسم",11,11,13,"13:03","10:57",12.1,26,19.2,"الشعور بالبرد ليلاً","m"],
+    ["الزبانا","الوسم",11,24,13,"13:16","10:44",11.1,25,18.0,"انخفاض ملحوظ في درجة الحرارة","m"]
   ];
-  function dateInYear(y, m, d){ return new Date(y, m-1, d); }
-  function findFolkPeriod(d){
-    var y = d.getFullYear();
-    for(var i=0;i<FOLK.length;i++){
-      var p = FOLK[i];
-      var wraps = (p.end[0] < p.start[0]) || (p.end[0]===p.start[0] && p.end[1]<p.start[1]);
-      if(!wraps){
-        if(d>=dateInYear(y,p.start[0],p.start[1]) && d<=dateInYear(y,p.end[0],p.end[1])) return p;
-      } else {
-        if(d>=dateInYear(y,p.start[0],p.start[1]) && d<=dateInYear(y+1,p.end[0],p.end[1])) return p;
-        if(d>=dateInYear(y-1,p.start[0],p.start[1]) && d<=dateInYear(y,p.end[0],p.end[1])) return p;
+  var TQ_SEASONS = [{name:"الشتاء",from:0,days:91,cls:"w"},{name:"الربيع",from:7,days:91,cls:"s"},{name:"الصيف",from:14,days:91,cls:"su"},{name:"الخريف",from:21,days:92,cls:"a"}];
+  var TQ_HVAC = {h:["🔥","تشغيل وسائل التدفئة"], m:["🌤️","معتدل"], c:["❄️","تشغيل وسائل التبريد"]};
+  function tqSeason(i){ for(var k=TQ_SEASONS.length-1;k>=0;k--) if(i>=TQ_SEASONS[k].from) return TQ_SEASONS[k]; return TQ_SEASONS[0]; }
+  function tqStart(i, y){ return new Date(y, TAWALI[i][2]-1, TAWALI[i][3]); }
+  function tqDiffDays(a,b){ return Math.round((new Date(b.getFullYear(),b.getMonth(),b.getDate()) - new Date(a.getFullYear(),a.getMonth(),a.getDate()))/864e5); }
+  // which طالع contains date d → {i, start}
+  function tqFind(d){
+    var best=null;
+    [d.getFullYear()-1, d.getFullYear()].forEach(function(y){
+      for(var i=0;i<TAWALI.length;i++){
+        var st=tqStart(i,y);
+        if(st<=d && (!best || st>best.start)) best={i:i,start:st};
       }
-    }
-    return null;
+    });
+    return best;
   }
-  var curFolk = findFolkPeriod(today);
-  var folkList = document.getElementById("folkList");
-  FOLK.forEach(function(p){
-    var isCurrent = curFolk && curFolk.name===p.name;
-    var row = document.createElement("div");
-    row.className = "folk-row"+(isCurrent?" current":"");
-    row.innerHTML =
-      '<div class="folk-range">'+p.start[1]+' '+MONTH_AR[p.start[0]]+' – '+p.end[1]+' '+MONTH_AR[p.end[0]]+'</div>' +
-      '<div><div class="folk-name">'+(isCurrent?'<span class="dot"></span>':'')+p.name+(isCurrent?' <span class="now-tag">نحن هنا</span>':'')+'</div>' +
-      '<div class="folk-note">'+p.note+'</div></div>';
-    folkList.appendChild(row);
-  });
+  function tqGroup(i){ // span of الدارجة group around i
+    var g=TAWALI[i][1], a=i, b=i;
+    while(a>0 && TAWALI[a-1][1]===g) a--;
+    while(b<TAWALI.length-1 && TAWALI[b+1][1]===g) b++;
+    var len=0; for(var k=a;k<=b;k++) len+=TAWALI[k][4];
+    var before=0; for(var k2=a;k2<i;k2++) before+=TAWALI[k2][4];
+    return {name:g, len:len, before:before};
+  }
+  function tqEsc(t){ var e=document.createElement("span"); e.textContent=t; return e.innerHTML; }
+  function renderTawali(){
+    var now=new Date(), cur=tqFind(now), T=TAWALI[cur.i];
+    var dayN=tqDiffDays(cur.start, now)+1, left=T[4]-dayN;
+    var g=tqGroup(cur.i), gDay=g.before+dayN, se=tqSeason(cur.i);
+    var ni=(cur.i+1)%TAWALI.length, N=TAWALI[ni];
+    var hv=TQ_HVAC[T[11]];
+    var box=document.getElementById("tqNow");
+    box.className="card tq-now tq-"+se.cls;
+    box.innerHTML=
+      '<div class="tq-top"><div><div class="tq-kicker">طالع اليوم</div><div class="tq-name">'+tqEsc(T[0])+'</div></div>'+
+      '<div class="tq-tags"><span class="tq-tag">'+tqEsc(g.name)+' · اليوم <b class="ltr-num">'+gDay+'</b> من <span class="ltr-num">'+g.len+'</span></span><span class="tq-tag soft">'+se.name+'</span></div></div>'+
+      '<div class="tq-prog"><div class="tq-bar"><i style="width:'+Math.round(dayN/T[4]*100)+'%"></i></div>'+
+      '<span>اليوم <b class="ltr-num">'+dayN+'</b> من <span class="ltr-num">'+T[4]+'</span> · '+(left>0?'يتبقى <span class="ltr-num">'+left+'</span> '+(left===1?'يوم':left===2?'يومان':left<=10?'أيام':'يوماً'):'آخر يوم')+'</span></div>'+
+      '<div class="tq-stats">'+
+        '<div><small>معدل الصغرى</small><b class="ltr-num">'+T[7]+'°</b></div>'+
+        '<div><small>معدل الكبرى</small><b class="ltr-num">'+T[8]+'°</b></div>'+
+        '<div><small>طول النهار</small><b class="ltr-num">'+T[6]+'</b></div>'+
+        '<div><small>طول الليل</small><b class="ltr-num">'+T[5]+'</b></div>'+
+      '</div>'+
+      (T[10]?'<div class="tq-note">'+tqEsc(T[10])+'</div>':'')+
+      '<div class="tq-foot"><span class="tq-hv">'+hv[0]+' '+hv[1]+'</span>'+
+      '<span class="tq-next">الطالع القادم: <b>'+tqEsc(N[0])+'</b> · <span class="ltr-num">'+N[3]+'</span> '+MONTH_AR[N[2]]+'</span></div>';
+    var list=document.getElementById("tqList"); list.textContent="";
+    TQ_SEASONS.forEach(function(S,si){
+      var to = si<TQ_SEASONS.length-1 ? TQ_SEASONS[si+1].from : TAWALI.length;
+      var h=document.createElement("div"); h.className="tq-sh tq-"+S.cls;
+      h.innerHTML='<b>'+S.name+'</b><span><span class="ltr-num">'+S.days+'</span> يوماً · من <span class="ltr-num">'+TAWALI[S.from][3]+'</span> '+MONTH_AR[TAWALI[S.from][2]]+'</span>';
+      list.appendChild(h);
+      for(var i=S.from;i<to;i++){
+        var R=TAWALI[i], isCur=i===cur.i;
+        var row=document.createElement("div"); row.className="folk-row tq-row"+(isCur?" current":"");
+        row.innerHTML='<div class="folk-range"><span class="ltr-num">'+R[3]+'</span> '+MONTH_AR[R[2]]+'<br><span class="tq-dur"><span class="ltr-num">'+R[4]+'</span> يوماً</span></div>'+
+          '<div><div class="folk-name">'+(isCur?'<span class="dot"></span>':'')+tqEsc(R[0])+' <span class="tq-dj">'+tqEsc(R[1])+'</span>'+(isCur?' <span class="now-tag">نحن هنا</span>':'')+'</div>'+
+          '<div class="tq-mini"><span>🌡️ <span class="ltr-num">'+R[7]+'–'+R[8]+'°</span></span><span>☀️ <span class="ltr-num">'+R[6]+'</span></span><span>🌙 <span class="ltr-num">'+R[5]+'</span></span><span>'+TQ_HVAC[R[11]][0]+' '+TQ_HVAC[R[11]][1]+'</span></div>'+
+          (R[10]?'<div class="folk-note">'+tqEsc(R[10])+'</div>':'')+'</div>';
+        list.appendChild(row);
+      }
+    });
+  }
+  renderTawali();
+  setInterval(renderTawali, 60*60*1000);
 
   // ---------- forecast snapshot: fallback shape, replaced by live Open-Meteo data on load ----------
   var SKY_ICON = {clear:"☀️", partly:"⛅", cloudy:"☁️", dust:"🌫️", sandstorm:"🌪️"};
