@@ -1039,7 +1039,7 @@
   <section>
     <div class="sec-head">
       <h3>سرعة الرياح خلال اليوم</h3>
-      <p>حتى <span class="ltr-num">11</span> كم/س مناسب جداً · من <span class="ltr-num">12</span> إلى <span class="ltr-num">14</span> يحتاج رواق · من <span class="ltr-num">15</span> وفوق عجاج</p>
+      <p>أقل من <span class="ltr-num">12</span> كم/س مناسب جداً · من <span class="ltr-num">12</span> إلى أقل من <span class="ltr-num">15</span> يحتاج رواق · من <span class="ltr-num">15</span> وفوق عجاج</p>
     </div>
     <div class="card chart-card">
       <div class="chart-caption" id="chartCaption"></div>
@@ -1047,8 +1047,8 @@
         <svg class="wind-chart" id="windChart" viewBox="0 0 640 220" role="img" aria-label="رسم سرعة الرياح بالساعة"></svg>
       </div>
       <div class="legend-row">
-        <span><span class="sw" style="background:var(--good)"></span>مناسبة جداً (٠–١١ كم/س)</span>
-        <span><span class="sw" style="background:var(--rawaq)"></span>مناسبة مع رواق (١٢–١٤ كم/س)</span>
+        <span><span class="sw" style="background:var(--good)"></span>مناسبة جداً (أقل من ١٢ كم/س)</span>
+        <span><span class="sw" style="background:var(--rawaq)"></span>مناسبة مع رواق (١٢ إلى أقل من ١٥)</span>
         <span><span class="sw" style="background:var(--critical)"></span>عجاج (١٥ كم/س وأعلى أو غبار)</span>
       </div>
       <div class="readout" id="chartReadout">مرّر أو اضغط على عمود لعرض تفاصيل الساعة.</div>
@@ -1095,7 +1095,7 @@
   <footer>
     <span class="live-dot syncing" id="liveDot" title="تحديث تلقائي كل ١٥ دقيقة"></span>
     <span id="dataSourceNote">جاري الاتصال بخدمات الأرصاد المباشرة…</span> تنبيهات الغبار تعتمد على مصدر ثانوي وقد لا تلتقط كل الحالات، فتحقق دائماً قبل الخروج من <a href="https://weather.com/ar-SA/sa/al-qassim/city/burayda/tenday" target="_blank" rel="noopener noreferrer">weather.com ↗</a> أو <a href="https://www.arabiaweather.com" target="_blank" rel="noopener noreferrer">arabiaweather ↗</a>.<br>
-    معيار الصلاحية: الرياح من <span class="ltr-num">0</span> إلى <span class="ltr-num">11</span> كم/س مناسب جداً، ومن <span class="ltr-num">12</span> إلى <span class="ltr-num">14</span> كم/س مناسب لكن يحتاج رواق عن الهواء، ومن <span class="ltr-num">15</span> وأعلى أو مع الغبار عجاج.. أقعد بالبيت.
+    معيار الصلاحية: الرياح من <span class="ltr-num">0</span> إلى <span class="ltr-num">11.9</span> كم/س مناسب جداً، ومن <span class="ltr-num">12</span> إلى <span class="ltr-num">14.9</span> كم/س مناسب لكن يحتاج رواق عن الهواء، ومن <span class="ltr-num">15</span> وأعلى أو مع الغبار عجاج.. أقعد بالبيت.
     <div class="copyright">جميع الحقوق محفوظة لشركة <span class="ltr-num">R-Meeh</span> © <span class="ltr-num" id="copyYear"></span></div>
   </footer>
 </div>
@@ -1105,9 +1105,10 @@
   "use strict";
 
   // wind tiers (km/h): 0–11 مناسب جداً · 12–14 مناسب ويحتاج رواق · 15+ عجاج، أقعد بالبيت
-  var WIND_GREAT_KMH = 11, WIND_RAWAQ_MAX_KMH = 14;
-  var WIND_LIMIT_KMH = WIND_RAWAQ_MAX_KMH + 1;
-  function windTier(w){ return w <= WIND_GREAT_KMH ? "great" : w <= WIND_RAWAQ_MAX_KMH ? "rawaq" : "bad"; }
+  // winds kept to one decimal; 11.x still counts as 11, 14.x as 14
+  var WIND_RAWAQ_KMH = 12, WIND_LIMIT_KMH = 15;
+  function windTier(w){ return w < WIND_RAWAQ_KMH ? "great" : w < WIND_LIMIT_KMH ? "rawaq" : "bad"; }
+  function fmtW(w){ w = Math.round(w*10)/10; return (w % 1) ? w.toFixed(1) : String(w); }
   var TIER_TITLE = {great:"مناسب جداً للكشتة", good:"مناسب للكشتة", rawaq:"مناسب للكشتة · يحتاج رواق", bad:"عجاج.. أقعد بالبيت"};
   var TIER_SHORT = {great:"مناسبة جداً", good:"مناسبة", rawaq:"مناسبة مع رواق", bad:"غير مناسبة"};
   var TIER_COLOR = {great:"var(--good)", good:"var(--good)", rawaq:"var(--rawaq)", bad:"var(--critical)"};
@@ -1115,7 +1116,7 @@
   function evaluate(windKmh, sky){
     var dust = (sky==="dust" || sky==="sandstorm");
     var reasons = [];
-    if(windKmh >= WIND_LIMIT_KMH) reasons.push("الرياح "+windKmh+" كم/س فوق الحد (١٤ كم/س)");
+    if(windKmh >= WIND_LIMIT_KMH) reasons.push("الرياح "+fmtW(windKmh)+" كم/س (من ١٥ وفوق = عجاج)");
     if(dust) reasons.push(sky==="sandstorm" ? "عاصفة ترابية" : "يوجد غبار في الجو");
     var ok = reasons.length===0;
     return {ok: ok, reasons: reasons, tier: ok ? windTier(windKmh) : "bad"};
@@ -1428,7 +1429,7 @@
     if(bgTime==="night"||bgTime==="sunset"||bgTime==="dawn") document.body.setAttribute("data-dark",""); else document.body.removeAttribute("data-dark");
     document.getElementById("heroSection").className = "hero " + (r.ok?"state-ok":"state-bad") + " tier-"+tier;
     document.getElementById("verdictTitle").textContent = TIER_TITLE[tier];
-    document.getElementById("verdictSub").textContent = "الرياح "+(hrs.length>1?'حتى ':'')+maxWind+" كم/س";
+    document.getElementById("verdictSub").textContent = "الرياح "+(hrs.length>1?'حتى ':'')+fmtW(maxWind)+" كم/س"+(hrs.length>1?" · أعلى قراءة الساعة "+hrs.reduce(function(a,b){return b.wind>a.wind?b:a;}).t:"");
 
     document.getElementById("heroLabel").textContent = timeLabel+" في بريدة";
     document.getElementById("heroIconWrap").innerHTML = iconSvg(heroIconId, 180);
@@ -1448,14 +1449,14 @@
       " · العظمى "+day.max+"° · الصغرى "+day.min+"°";
 
     document.getElementById("heroExplain").textContent = r.ok
-      ? (tier==="great" ? "الرياح هادئة (١١ كم/س أو أقل) والسماء بلا غبار، الجو مثالي."
-        : "الرياح بين ١٢ و١٤ كم/س: الجو مناسب، بس جهّز رواق يصد عنكم الهواء.")
-      : basis+" — "+r.reasons.join("، ")+" (الساعة "+hour.t+")";
+      ? (tier==="great" ? "الرياح "+fmtW(maxWind)+" كم/س (أقل من ١٢) والسماء بلا غبار، الجو مثالي."
+        : "الرياح "+fmtW(maxWind)+" كم/س (من ١٢ إلى أقل من ١٥): الجو مناسب، بس جهّز رواق يصد عنكم الهواء.")
+      : basis+" — "+r.reasons.join("، ")+(hrs.length>1?" (الساعة "+hour.t+")":"");
 
     var best = firstOkHour(day);
     var bestLine = document.getElementById("bestLine");
     if(best){
-      bestLine.innerHTML = "أفضل وقت "+day.label+" للكشتة: الساعة <b class=\"ltr-num\">"+best.t+"</b> (رياح "+best.wind+" كم/س، "+SKY_AR[best.sky]+")";
+      bestLine.innerHTML = "أفضل وقت "+day.label+" للكشتة: الساعة <b class=\"ltr-num\">"+best.t+"</b> (رياح "+fmtW(best.wind)+" كم/س، "+SKY_AR[best.sky]+")";
     } else {
       var nextIdx = Math.min(activeDay+1, FORECAST.length-1);
       var nextBest = firstOkHour(FORECAST[nextIdx]);
@@ -1578,12 +1579,12 @@
     parts.push('<line x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'" stroke="var(--border)" stroke-width="1"/>');
 
     // threshold line
-    var y11 = yFor(WIND_GREAT_KMH);
+    var y11 = yFor(WIND_RAWAQ_KMH);
     parts.push('<line x1="'+padL+'" y1="'+y11+'" x2="'+(W-padR)+'" y2="'+y11+'" stroke="var(--good)" stroke-opacity=".6" stroke-width="1.2" stroke-dasharray="2 4"/>');
-    parts.push('<text x="'+(padL-8)+'" y="'+(y11+4)+'" text-anchor="end" font-size="11" fill="var(--good)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">11</text>');
-    var yT = yFor(WIND_RAWAQ_MAX_KMH);
+    parts.push('<text x="'+(padL-8)+'" y="'+(y11+4)+'" text-anchor="end" font-size="11" fill="var(--rawaq)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">12</text>');
+    var yT = yFor(WIND_LIMIT_KMH);
     parts.push('<line x1="'+padL+'" y1="'+yT+'" x2="'+(W-padR)+'" y2="'+yT+'" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4 4"/>');
-    parts.push('<text x="'+(W-padR)+'" y="'+(yT-6)+'" text-anchor="start" font-size="11" fill="var(--text-muted)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">14 كم/س</text>');
+    parts.push('<text x="'+(W-padR)+'" y="'+(yT-6)+'" text-anchor="start" font-size="11" fill="var(--critical)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">15 كم/س · عجاج</text>');
 
     // y-axis ticks (0 and maxVal)
     parts.push('<text x="'+(padL-8)+'" y="'+(padT+plotH)+'" text-anchor="end" font-size="11" fill="var(--text-muted)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">0</text>');
@@ -1600,11 +1601,11 @@
       var rx = 4;
 
       parts.push(
-        '<g class="bar-group" tabindex="0" role="button" aria-label="الساعة '+h.t+': رياح '+h.wind+' كم س، '+SKY_AR[h.sky]+'" ' +
+        '<g class="bar-group" tabindex="0" role="button" aria-label="الساعة '+h.t+': رياح '+fmtW(h.wind)+' كم س، '+SKY_AR[h.sky]+'" ' +
           'data-i="'+i+'">' +
           '<rect class="hit" x="'+(x-slotW/2)+'" y="'+padT+'" width="'+slotW+'" height="'+plotH+'" fill="transparent"/>' +
           '<rect class="bar" x="'+(x-barW/2)+'" y="'+yTop+'" width="'+barW+'" height="'+Math.max(barH,3)+'" rx="'+rx+'" fill="'+color+'"/>' +
-          (h===peak ? '<text x="'+x+'" y="'+(yTop-8)+'" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">'+h.wind+'</text>' : '') +
+          (h===peak ? '<text x="'+x+'" y="'+(yTop-8)+'" text-anchor="middle" font-size="11" font-weight="700" fill="var(--text)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">'+fmtW(h.wind)+'</text>' : '') +
           '<text x="'+x+'" y="'+(padT+plotH+18)+'" text-anchor="middle" font-size="10.5" fill="var(--text-muted)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">'+h.t+'</text>' +
         '</g>'
       );
@@ -1618,7 +1619,7 @@
         var h = day.hours[i];
         var r = evaluate(h.wind, h.sky);
         chartReadout.innerHTML =
-          "الساعة <b class=\"ltr-num\">"+h.t+"</b> — رياح <b class=\"ltr-num\">"+h.wind+"</b> كم/س، "+SKY_ICON[h.sky]+" "+SKY_AR[h.sky]+
+          "الساعة <b class=\"ltr-num\">"+h.t+"</b> — رياح <b class=\"ltr-num\">"+fmtW(h.wind)+"</b> كم/س، "+SKY_ICON[h.sky]+" "+SKY_AR[h.sky]+
           " — " + (r.ok ? "<b style=\"color:"+TIER_COLOR[r.tier]+"\">"+TIER_SHORT[r.tier]+" للكشتة</b>" : "<b style=\"color:var(--critical)\">عجاج.. أقعد بالبيت</b> ("+r.reasons.join("، ")+")");
       }
       g.addEventListener("mouseenter", show);
@@ -1637,7 +1638,7 @@
         '<span class="h-time ltr-num">'+h.t+'</span>' +
         iconSvg(iconIdFor(h.sky, isNightHour(h.t)), 22) +
         '<span class="h-temp ltr-num">'+interpTemp(h.t, day.min, day.max)+'°</span>' +
-        '<span class="h-wind ltr-num">'+iconSvg("wind",11)+h.wind+'</span>';
+        '<span class="h-wind ltr-num">'+iconSvg("wind",11)+fmtW(h.wind)+'</span>';
       hourTable.appendChild(cell);
     });
   }
@@ -1668,7 +1669,7 @@
     ];
     if(calmDays.length) L.push({when: inSuhail || inWasm, text:"إذا طلع سهيل طاب الليل",
        meaning:"ليالي ما بعد سهيل تطيب للسمر والجلسات في البر.",
-       now:"أهدأ الليالي القادمة حسب التوقعات: <b>"+calmDays.join("، ")+"</b>."+(maxWindTm>=WIND_LIMIT_KMH?" أما غداً فالرياح تصل <b class=\"ltr-num\">"+maxWindTm+"</b> كم/س.":"")});
+       now:"أهدأ الليالي القادمة حسب التوقعات: <b>"+calmDays.join("، ")+"</b>."+(maxWindTm>=WIND_LIMIT_KMH?" أما غداً فالرياح تصل <b class=\"ltr-num\">"+fmtW(maxWindTm)+"</b> كم/س.":"")});
     var box = document.getElementById("sayings");
     var shown = L.filter(function(x){ return x.when; });
     box.innerHTML = "";
@@ -1712,7 +1713,7 @@
       if(typeof pr==="number") byDate[datePart].rainMM += pr;
       if((wc>=51 && wc<=67) || (wc>=80 && wc<=82) || wc>=95 || pr>=0.2) byDate[datePart].rain = true;
       if(hour % 3 !== 0) continue;
-      byDate[datePart].hours.push({t:pad2(hour)+":00", wind:Math.round(h.wind_speed_10m[i]), sky:wmoToSky(h.weathercode[i]), temp:h.temperature_2m[i], rain:isRainCode(h.weathercode[i]) || (h.precipitation && h.precipitation[i]>=0.2)});
+      byDate[datePart].hours.push({t:pad2(hour)+":00", wind:Math.round(h.wind_speed_10m[i]*10)/10, sky:wmoToSky(h.weathercode[i]), temp:h.temperature_2m[i], rain:isRainCode(h.weathercode[i]) || (h.precipitation && h.precipitation[i]>=0.2)});
       byDate[datePart].temps.push(h.temperature_2m[i]);
     }
     var dates = Object.keys(byDate).sort();
@@ -1840,7 +1841,7 @@
       // current conditions: Open-Meteo first (15-minute model update), wttr.in as backup
       var cur = null;
       if(om && om.current && typeof om.current.temperature_2m==="number"){
-        cur = {temp:om.current.temperature_2m, feels:om.current.apparent_temperature, wind:Math.round(om.current.wind_speed_10m),
+        cur = {temp:om.current.temperature_2m, feels:om.current.apparent_temperature, wind:Math.round(om.current.wind_speed_10m*10)/10,
                sky:wmoToSky(om.current.weather_code), rain:isRainCode(om.current.weather_code), time:String(om.current.time||"").slice(11,16) || stamp};
       }
       if(om && om.daily && om.daily.sunrise){
