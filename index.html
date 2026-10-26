@@ -671,6 +671,13 @@
   .tq-dj{font-size:.72rem;font-weight:500;color:var(--text-soft);background:var(--surface-2);border:1px solid var(--border);border-radius:999px;padding:1px 8px;}
   .tq-dur{font-size:.7rem;}
   .tq-mini{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:.76rem;color:var(--text-soft);}
+
+  /* ================= wind tiers ================= */
+  :root{--rawaq:#D98A1C;}
+  .sp-badge.rawaq{background:var(--rawaq);}
+  .tag.rawaq{background:rgba(217,138,28,.16);color:#9A5B07;border-color:rgba(217,138,28,.45);}
+  body[data-dark] .tag.rawaq{color:#FFC872;}
+  .hour-cell.rawaq{border-color:var(--rawaq);}
 </style>
 
 <div class="weather-fx" aria-hidden="true"><span class="fx-naqsh"></span>
@@ -1032,7 +1039,7 @@
   <section>
     <div class="sec-head">
       <h3>سرعة الرياح خلال اليوم</h3>
-      <p>الخط المتقطع هو حد <span class="ltr-num">14</span> كم/س — تحت الخط يعني رياح مناسبة</p>
+      <p>حتى <span class="ltr-num">11</span> كم/س مناسب جداً · من <span class="ltr-num">12</span> إلى <span class="ltr-num">14</span> يحتاج رواق · من <span class="ltr-num">15</span> وفوق عجاج</p>
     </div>
     <div class="card chart-card">
       <div class="chart-caption" id="chartCaption"></div>
@@ -1040,8 +1047,9 @@
         <svg class="wind-chart" id="windChart" viewBox="0 0 640 220" role="img" aria-label="رسم سرعة الرياح بالساعة"></svg>
       </div>
       <div class="legend-row">
-        <span><span class="sw" style="background:var(--good)"></span>مناسبة للكشتة</span>
-        <span><span class="sw" style="background:var(--critical)"></span>غير مناسبة (رياح أو غبار)</span>
+        <span><span class="sw" style="background:var(--good)"></span>مناسبة جداً (٠–١١ كم/س)</span>
+        <span><span class="sw" style="background:var(--rawaq)"></span>مناسبة مع رواق (١٢–١٤ كم/س)</span>
+        <span><span class="sw" style="background:var(--critical)"></span>عجاج (١٥ كم/س وأعلى أو غبار)</span>
       </div>
       <div class="readout" id="chartReadout">مرّر أو اضغط على عمود لعرض تفاصيل الساعة.</div>
 
@@ -1087,7 +1095,7 @@
   <footer>
     <span class="live-dot syncing" id="liveDot" title="تحديث تلقائي كل ١٥ دقيقة"></span>
     <span id="dataSourceNote">جاري الاتصال بخدمات الأرصاد المباشرة…</span> تنبيهات الغبار تعتمد على مصدر ثانوي وقد لا تلتقط كل الحالات، فتحقق دائماً قبل الخروج من <a href="https://weather.com/ar-SA/sa/al-qassim/city/burayda/tenday" target="_blank" rel="noopener noreferrer">weather.com ↗</a> أو <a href="https://www.arabiaweather.com" target="_blank" rel="noopener noreferrer">arabiaweather ↗</a>.<br>
-    معيار الصلاحية الأساسي: رياح أقل من <span class="ltr-num">14</span> كم/س وسماء بلا غبار.
+    معيار الصلاحية: الرياح من <span class="ltr-num">0</span> إلى <span class="ltr-num">11</span> كم/س مناسب جداً، ومن <span class="ltr-num">12</span> إلى <span class="ltr-num">14</span> كم/س مناسب لكن يحتاج رواق عن الهواء، ومن <span class="ltr-num">15</span> وأعلى أو مع الغبار عجاج.. أقعد بالبيت.
     <div class="copyright">جميع الحقوق محفوظة لشركة <span class="ltr-num">R-Meeh</span> © <span class="ltr-num" id="copyYear"></span></div>
   </footer>
 </div>
@@ -1096,14 +1104,27 @@
 (function(){
   "use strict";
 
-  var WIND_LIMIT_KMH = 14;
+  // wind tiers (km/h): 0–11 مناسب جداً · 12–14 مناسب ويحتاج رواق · 15+ عجاج، أقعد بالبيت
+  var WIND_GREAT_KMH = 11, WIND_RAWAQ_MAX_KMH = 14;
+  var WIND_LIMIT_KMH = WIND_RAWAQ_MAX_KMH + 1;
+  function windTier(w){ return w <= WIND_GREAT_KMH ? "great" : w <= WIND_RAWAQ_MAX_KMH ? "rawaq" : "bad"; }
+  var TIER_TITLE = {great:"مناسب جداً للكشتة", good:"مناسب للكشتة", rawaq:"مناسب للكشتة · يحتاج رواق", bad:"عجاج.. أقعد بالبيت"};
+  var TIER_SHORT = {great:"مناسبة جداً", good:"مناسبة", rawaq:"مناسبة مع رواق", bad:"غير مناسبة"};
+  var TIER_COLOR = {great:"var(--good)", good:"var(--good)", rawaq:"var(--rawaq)", bad:"var(--critical)"};
 
   function evaluate(windKmh, sky){
     var dust = (sky==="dust" || sky==="sandstorm");
     var reasons = [];
-    if(windKmh >= WIND_LIMIT_KMH) reasons.push("الرياح "+windKmh+" كم/س تتجاوز الحد (١٤ كم/س)");
+    if(windKmh >= WIND_LIMIT_KMH) reasons.push("الرياح "+windKmh+" كم/س فوق الحد (١٤ كم/س)");
     if(dust) reasons.push(sky==="sandstorm" ? "عاصفة ترابية" : "يوجد غبار في الجو");
-    return {ok: reasons.length===0, reasons: reasons};
+    var ok = reasons.length===0;
+    return {ok: ok, reasons: reasons, tier: ok ? windTier(windKmh) : "bad"};
+  }
+  // tier for a set of hours = worst hour
+  function hoursTier(hs){
+    var order = {great:0, good:1, rawaq:2, bad:3}, t = "great";
+    hs.forEach(function(h){ var x = evaluate(h.wind, h.sky).tier; if(order[x] > order[t]) t = x; });
+    return hs.length ? t : "bad";
   }
 
   // ---------- dates ----------
@@ -1380,8 +1401,9 @@
     var timeLabel = (timeChoice==="now" && activeDay===0) ? "الآن" : TIME_LABEL[timeChoice];
 
     var badge = document.getElementById("verdictBadge");
-    badge.className = "sp-badge " + (r.ok?"ok":"bad");
-    badge.textContent = r.ok ? "✓" : "✕";
+    var tier = r.ok ? hoursTier(hrs) : "bad";
+    badge.className = "sp-badge " + (r.ok?"ok":"bad") + (tier==="rawaq"?" rawaq":"");
+    badge.textContent = r.ok ? (tier==="rawaq" ? "!" : "✓") : "✕";
     document.getElementById("okPhoto").hidden = !r.ok;
     var bv = document.getElementById("badVideo"), vid = document.getElementById("badVid");
     bv.hidden = r.ok;
@@ -1404,8 +1426,8 @@
     document.body.setAttribute("data-time", bgTime);
     document.body.setAttribute("data-cond", bgCond);
     if(bgTime==="night"||bgTime==="sunset"||bgTime==="dawn") document.body.setAttribute("data-dark",""); else document.body.removeAttribute("data-dark");
-    document.getElementById("heroSection").className = "hero " + (r.ok?"state-ok":"state-bad");
-    document.getElementById("verdictTitle").textContent = r.ok ? "مناسب للكشتة" : "غير مناسب للكشتة";
+    document.getElementById("heroSection").className = "hero " + (r.ok?"state-ok":"state-bad") + " tier-"+tier;
+    document.getElementById("verdictTitle").textContent = TIER_TITLE[tier];
     document.getElementById("verdictSub").textContent = "الرياح "+(hrs.length>1?'حتى ':'')+maxWind+" كم/س";
 
     document.getElementById("heroLabel").textContent = timeLabel+" في بريدة";
@@ -1426,7 +1448,8 @@
       " · العظمى "+day.max+"° · الصغرى "+day.min+"°";
 
     document.getElementById("heroExplain").textContent = r.ok
-      ? "الرياح هادئة والسماء بلا غبار."
+      ? (tier==="great" ? "الرياح هادئة (١١ كم/س أو أقل) والسماء بلا غبار، الجو مثالي."
+        : "الرياح بين ١٢ و١٤ كم/س: الجو مناسب، بس جهّز رواق يصد عنكم الهواء.")
       : basis+" — "+r.reasons.join("، ")+" (الساعة "+hour.t+")";
 
     var best = firstOkHour(day);
@@ -1472,6 +1495,8 @@
       if(idx===0) return;
       var ok = suitableCount(day), total = day.hours.length, dust = hasDust(day);
       var asrOk = periodOk(day,"asr"), ishaOk = periodOk(day,"isha");
+      var asrT = asrOk ? hoursTier(slotsIn(day,WINDOWS.asr)) : "bad", ishaT = ishaOk ? hoursTier(slotsIn(day,WINDOWS.isha)) : "bad";
+      function ptag(name, ok, t){ return '<span class="tag '+(!ok?"bad":t==="rawaq"?"rawaq":"good")+'">'+name+' '+(!ok?"✕":t==="rawaq"?"✓ رواق":"✓")+'</span>'; }
       var repHour = slotsIn(day,WINDOWS.asr)[0] || day.hours[Math.floor(day.hours.length/2)];
       var repIcon = iconIdFor(repHour.sky, false);
       var left = ((day.min-gMin)/gSpan*100).toFixed(1);
@@ -1488,8 +1513,8 @@
           '<span class="range-num ltr-num">'+day.max+'°</span>' +
         '</span>' +
         '<span class="d-badges">' +
-          '<span class="tag '+(asrOk?"good":"bad")+'">العصر '+(asrOk?"✓":"✕")+'</span>' +
-          '<span class="tag '+(ishaOk?"good":"bad")+'">العشاء '+(ishaOk?"✓":"✕")+'</span>' +
+          ptag("العصر", asrOk, asrT) +
+          ptag("العشاء", ishaOk, ishaT) +
           '<span class="tag '+(ok>0?"good":"bad")+'">'+ok+' من '+total+' قراءات مناسبة</span>' +
           (dust?'<span class="tag bad">غبار متوقع</span>':'') +
         '</span>';
@@ -1553,9 +1578,12 @@
     parts.push('<line x1="'+padL+'" y1="'+(padT+plotH)+'" x2="'+(W-padR)+'" y2="'+(padT+plotH)+'" stroke="var(--border)" stroke-width="1"/>');
 
     // threshold line
-    var yT = yFor(WIND_LIMIT_KMH);
+    var y11 = yFor(WIND_GREAT_KMH);
+    parts.push('<line x1="'+padL+'" y1="'+y11+'" x2="'+(W-padR)+'" y2="'+y11+'" stroke="var(--good)" stroke-opacity=".6" stroke-width="1.2" stroke-dasharray="2 4"/>');
+    parts.push('<text x="'+(padL-8)+'" y="'+(y11+4)+'" text-anchor="end" font-size="11" fill="var(--good)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">11</text>');
+    var yT = yFor(WIND_RAWAQ_MAX_KMH);
     parts.push('<line x1="'+padL+'" y1="'+yT+'" x2="'+(W-padR)+'" y2="'+yT+'" stroke="var(--text-muted)" stroke-width="1.5" stroke-dasharray="4 4"/>');
-    parts.push('<text x="'+(W-padR)+'" y="'+(yT-6)+'" text-anchor="end" font-size="11" fill="var(--text-muted)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">14 كم/س</text>');
+    parts.push('<text x="'+(W-padR)+'" y="'+(yT-6)+'" text-anchor="start" font-size="11" fill="var(--text-muted)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">14 كم/س</text>');
 
     // y-axis ticks (0 and maxVal)
     parts.push('<text x="'+(padL-8)+'" y="'+(padT+plotH)+'" text-anchor="end" font-size="11" fill="var(--text-muted)" font-family="Thmanyah Sans Web, IBM Plex Sans Arabic">0</text>');
@@ -1568,7 +1596,7 @@
       var x = xFor(i);
       var yTop = yFor(h.wind);
       var barH = (padT+plotH) - yTop;
-      var color = r.ok ? "var(--good)" : "var(--critical)";
+      var color = TIER_COLOR[r.tier];
       var rx = 4;
 
       parts.push(
@@ -1591,7 +1619,7 @@
         var r = evaluate(h.wind, h.sky);
         chartReadout.innerHTML =
           "الساعة <b class=\"ltr-num\">"+h.t+"</b> — رياح <b class=\"ltr-num\">"+h.wind+"</b> كم/س، "+SKY_ICON[h.sky]+" "+SKY_AR[h.sky]+
-          " — " + (r.ok ? "<b style=\"color:var(--good)\">مناسبة للكشتة</b>" : "<b style=\"color:var(--critical)\">غير مناسبة</b> ("+r.reasons.join("، ")+")");
+          " — " + (r.ok ? "<b style=\"color:"+TIER_COLOR[r.tier]+"\">"+TIER_SHORT[r.tier]+" للكشتة</b>" : "<b style=\"color:var(--critical)\">عجاج.. أقعد بالبيت</b> ("+r.reasons.join("، ")+")");
       }
       g.addEventListener("mouseenter", show);
       g.addEventListener("focus", show);
@@ -1604,7 +1632,7 @@
     day.hours.forEach(function(h){
       var r = evaluate(h.wind, h.sky);
       var cell = document.createElement("div");
-      cell.className = "hour-cell " + (r.ok?"ok":"bad");
+      cell.className = "hour-cell " + (r.ok?"ok":"bad") + (r.tier==="rawaq"?" rawaq":"");
       cell.innerHTML =
         '<span class="h-time ltr-num">'+h.t+'</span>' +
         iconSvg(iconIdFor(h.sky, isNightHour(h.t)), 22) +
