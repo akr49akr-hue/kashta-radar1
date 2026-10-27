@@ -678,6 +678,16 @@
   .tag.rawaq{background:rgba(217,138,28,.16);color:#9A5B07;border-color:rgba(217,138,28,.45);}
   body[data-dark] .tag.rawaq{color:#FFC872;}
   .hour-cell.rawaq{border-color:var(--rawaq);}
+
+  /* ================= smoother: only animate the sky effects that are actually showing ================= */
+  .fx-rain,.fx-cloud,.fx-dust,.fx-star{animation-play-state:paused;}
+  body[data-cond="rain"] .fx-rain,
+  body[data-cond="cloudy"] .fx-cloud, body[data-cond="rain"] .fx-cloud,
+  body[data-cond="dusty"] .fx-dust,
+  body[data-time="night"]:not([data-cond="rain"]):not([data-cond="dusty"]) .fx-star{animation-play-state:running;}
+  .fx-cloud{filter:none;background:radial-gradient(ellipse, rgba(255,255,255,.85), rgba(255,255,255,.35) 45%, transparent 72%);}
+  .hw-temp,#heroTemp{font-variant-numeric:tabular-nums;}
+  button,a,[role="button"],.tabs button{touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 </style>
 
 <div class="weather-fx" aria-hidden="true"><span class="fx-naqsh"></span>
@@ -1388,6 +1398,26 @@
     return hs.length>0 && hs.every(function(h){ return evaluate(h.wind,h.sky).ok; });
   }
 
+  // live refresh: count the temperature to its new value instead of jumping (tab switches keep their view transition)
+  var _heroKey = null, _heroVal = null, _heroRaf = 0;
+  function setHeroTemp(txt, key){
+    var el = document.getElementById("heroTemp"), to = parseInt(txt, 10);
+    cancelAnimationFrame(_heroRaf);
+    var canTween = key===_heroKey && typeof _heroVal==="number" && !isNaN(to) && to!==_heroVal &&
+                   !matchMedia("(prefers-reduced-motion: reduce)").matches && !document.hidden;
+    if(canTween){
+      var from = _heroVal, t0 = performance.now(), dur = 900;
+      (function step(now){
+        var k = Math.min(1, (now - t0)/dur), e = 1 - Math.pow(1-k, 3);
+        el.innerHTML = Math.round(from + (to-from)*e)+'<small>°</small>';
+        if(k < 1) _heroRaf = requestAnimationFrame(step);
+      })(t0);
+    } else {
+      el.innerHTML = txt+'<small>°</small>';
+    }
+    _heroKey = key; _heroVal = isNaN(to) ? null : to;
+  }
+
   function renderHero(){
     var day = FORECAST[activeDay];
     var hrs = pickHours(day, activeDay, timeChoice);
@@ -1445,7 +1475,7 @@
       var withT = hrs.filter(function(h){ return typeof h.temp==="number" && !isNaN(h.temp); });
       tempTxt = withT.length ? String(Math.round(withT.reduce(function(a,h){return a+h.temp;},0)/withT.length)) : String(interpTemp(hour.t, day.min, day.max));
     }
-    document.getElementById("heroTemp").innerHTML = tempTxt+'<small>°</small>';
+    setHeroTemp(tempTxt, activeDay+"|"+timeChoice);
     if(isNowView && CURRENT) document.getElementById("heroLabel").textContent = "الآن في بريدة · قراءة الساعة "+CURRENT.time;
     else if(isNowView && LIVE_STATE==="loading") document.getElementById("heroLabel").textContent = "الآن في بريدة · جاري جلب القراءة…";
     document.getElementById("heroCond").textContent = SKY_AR[hour.sky]+" "+((night && hour.sky==="clear") ? "🌙" : (night && hour.sky==="partly") ? "☁️" : SKY_ICON[hour.sky])+
