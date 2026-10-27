@@ -1372,14 +1372,14 @@
   }
   function pickHours(day, dayIdx, choice){
     if(choice==="now" && dayIdx===0){
-      if(CURRENT) return [{t:CURRENT.time, wind:CURRENT.wind, sky:CURRENT.sky, temp:CURRENT.temp, rain:!!CURRENT.rain, live:true}];
+      if(CURRENT) return [{t:CURRENT.time, wind:CURRENT.wind, gust:CURRENT.gust, lo:CURRENT.lo, hi:CURRENT.hi, n:CURRENT.n, sky:CURRENT.sky, temp:CURRENT.temp, rain:!!CURRENT.rain, live:true}];
       return [nearestHour(day, today)];
     }
     return slotsIn(day, WINDOWS[choice==="isha"?"isha":"asr"]);
   }
 
   // live current conditions (filled by fetchLiveWeather); "loading" until the first answer
-  var CURRENT = null, LIVE_STATE = "loading";
+  var CURRENT = null, LIVE_STATE = "loading", WIND_ENS = null;
   var activeDay = 0;
   var timeChoice = "now";
   var view = "today";
@@ -1429,7 +1429,11 @@
     if(bgTime==="night"||bgTime==="sunset"||bgTime==="dawn") document.body.setAttribute("data-dark",""); else document.body.removeAttribute("data-dark");
     document.getElementById("heroSection").className = "hero " + (r.ok?"state-ok":"state-bad") + " tier-"+tier;
     document.getElementById("verdictTitle").textContent = TIER_TITLE[tier];
-    document.getElementById("verdictSub").textContent = "الرياح "+(hrs.length>1?'حتى ':'')+fmtW(maxWind)+" كم/س"+(hrs.length>1?" · أعلى قراءة الساعة "+hrs.reduce(function(a,b){return b.wind>a.wind?b:a;}).t:"");
+        var windiest = hrs.reduce(function(a,b){return b.wind>a.wind?b:a;});
+    var gusts = hrs.map(function(h){return h.gust;}).filter(function(g){return typeof g==="number";});
+    document.getElementById("verdictSub").textContent = "الرياح "+(hrs.length>1?'حتى ':'')+fmtW(maxWind)+" كم/س"+
+      (gusts.length ? " · هبات "+(hrs.length>1?'حتى ':'')+fmtW(Math.max.apply(null,gusts)) : "")+
+      (hrs.length>1?" · أعلى قراءة الساعة "+windiest.t:"");
 
     document.getElementById("heroLabel").textContent = timeLabel+" في بريدة";
     document.getElementById("heroIconWrap").innerHTML = iconSvg(heroIconId, 180);
@@ -1452,6 +1456,7 @@
       ? (tier==="great" ? "الرياح "+fmtW(maxWind)+" كم/س (أقل من ١٢) والسماء بلا غبار، الجو مثالي."
         : "الرياح "+fmtW(maxWind)+" كم/س (من ١٢ إلى أقل من ١٥): الجو مناسب، بس جهّز رواق يصد عنكم الهواء.")
       : basis+" — "+r.reasons.join("، ")+(hrs.length>1?" (الساعة "+hour.t+")":"");
+    if(windiest.n>1) document.getElementById("heroExplain").textContent += " · وسيط "+windiest.n+" نماذج (تراوحت بين "+fmtW(windiest.lo)+" و"+fmtW(windiest.hi)+" كم/س)";
 
     var best = firstOkHour(day);
     var bestLine = document.getElementById("bestLine");
@@ -1619,7 +1624,7 @@
         var h = day.hours[i];
         var r = evaluate(h.wind, h.sky);
         chartReadout.innerHTML =
-          "الساعة <b class=\"ltr-num\">"+h.t+"</b> — رياح <b class=\"ltr-num\">"+fmtW(h.wind)+"</b> كم/س، "+SKY_ICON[h.sky]+" "+SKY_AR[h.sky]+
+          "الساعة <b class=\"ltr-num\">"+h.t+"</b> — رياح <b class=\"ltr-num\">"+fmtW(h.wind)+"</b> كم/س"+(h.gust!=null?" (هبات "+fmtW(h.gust)+")":"")+(h.n>1?" · "+h.n+" نماذج: "+fmtW(h.lo)+"–"+fmtW(h.hi):"")+"، "+SKY_ICON[h.sky]+" "+SKY_AR[h.sky]+
           " — " + (r.ok ? "<b style=\"color:"+TIER_COLOR[r.tier]+"\">"+TIER_SHORT[r.tier]+" للكشتة</b>" : "<b style=\"color:var(--critical)\">عجاج.. أقعد بالبيت</b> ("+r.reasons.join("، ")+")");
       }
       g.addEventListener("mouseenter", show);
@@ -1685,13 +1690,56 @@
   renderSayings();
 
   // ---------- live data, two independent sources for reliability ----------
-  // Open-Meteo: precise numeric wind/temp (ECMWF/GFS/ICON blend), no dust classification.
+  // Open-Meteo: temp/rain from best-match blend; wind from a multi-model median (below). No dust classification.
   // wttr.in (World Weather Online): weaker numbers, but it's the one that actually flags dust/sandstorms —
   // used here only to overlay a dust/sandstorm flag on top of Open-Meteo's reading, or as a full fallback if Open-Meteo is unreachable.
   var BURAIDAH_LAT = 26.326, BURAIDAH_LON = 43.975;
   var OPEN_METEO_URL = "https://api.open-meteo.com/v1/forecast?latitude="+BURAIDAH_LAT+"&longitude="+BURAIDAH_LON+
-    "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m"+
-    "&daily=sunrise,sunset&hourly=temperature_2m,wind_speed_10m,weathercode,precipitation,precipitation_probability&wind_speed_unit=kmh&timezone=Asia%2FRiyadh&forecast_days=6";
+    "&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,wind_gusts_10m"+
+    "&daily=sunrise,sunset&hourly=temperature_2m,wind_speed_10m,wind_gusts_10m,weathercode,precipitation,precipitation_probability&wind_speed_unit=kmh&timezone=Asia%2FRiyadh&forecast_days=6";
+  // Wind consensus: the same hour from several independent global models; we use the MEDIAN so one model's miss can't flip the verdict.
+  var WIND_MODELS = [
+    {id:"ecmwf_ifs", name:"ECMWF"},      // European centre, 9 km
+    {id:"icon_seamless", name:"ICON"},   // German DWD
+    {id:"gfs_seamless", name:"GFS"},     // US NOAA
+    {id:"ukmo_seamless", name:"UKMO"}    // UK Met Office
+  ];
+  var WIND_ENS_URL = "https://api.open-meteo.com/v1/forecast?latitude="+BURAIDAH_LAT+"&longitude="+BURAIDAH_LON+
+    "&current=wind_speed_10m,wind_gusts_10m&hourly=wind_speed_10m,wind_gusts_10m"+
+    "&models="+WIND_MODELS.map(function(m){return m.id;}).join(",")+
+    "&wind_speed_unit=kmh&timezone=Asia%2FRiyadh&forecast_days=6";
+  function median(a){ a=a.slice().sort(function(x,y){return x-y;}); var n=a.length; return n ? (n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2) : null; }
+  function r1(x){ return Math.round(x*10)/10; }
+  // collect per-model values of a variable at index i (keys like wind_speed_10m_ecmwf_ifs)
+  function modelVals(block, v, i){
+    var out = [], names = [];
+    WIND_MODELS.forEach(function(m){
+      var arr = block[v+"_"+m.id], x = (i==null) ? arr : (arr && arr[i]);
+      if(typeof x==="number" && !isNaN(x)){ out.push(x); names.push(m.name); }
+    });
+    if(!out.length){ var x0 = (i==null) ? block[v] : (block[v] && block[v][i]); if(typeof x0==="number") { out.push(x0); names.push("مزيج"); } }
+    return {vals:out, names:names};
+  }
+  function windConsensus(json){
+    var res = {hours:{}, current:null, models:[]};
+    var seen = {};
+    if(json && json.hourly && json.hourly.time){
+      json.hourly.time.forEach(function(t, i){
+        var w = modelVals(json.hourly, "wind_speed_10m", i), g = modelVals(json.hourly, "wind_gusts_10m", i);
+        if(!w.vals.length) return;
+        w.names.forEach(function(n){ seen[n]=1; });
+        res.hours[t.slice(0,10)+" "+t.slice(11,16)] = {w:r1(median(w.vals)), g:g.vals.length?r1(median(g.vals)):null,
+          lo:r1(Math.min.apply(null,w.vals)), hi:r1(Math.max.apply(null,w.vals)), n:w.vals.length};
+      });
+    }
+    if(json && json.current){
+      var cw = modelVals(json.current, "wind_speed_10m"), cg = modelVals(json.current, "wind_gusts_10m");
+      if(cw.vals.length) res.current = {w:r1(median(cw.vals)), g:cg.vals.length?r1(median(cg.vals)):null,
+        lo:r1(Math.min.apply(null,cw.vals)), hi:r1(Math.max.apply(null,cw.vals)), n:cw.vals.length};
+    }
+    res.models = Object.keys(seen);
+    return res;
+  }
   var WTTR_URL = "https://wttr.in/Buraidah?format=j1";
 
   function wmoToSky(code){
@@ -1713,7 +1761,7 @@
       if(typeof pr==="number") byDate[datePart].rainMM += pr;
       if((wc>=51 && wc<=67) || (wc>=80 && wc<=82) || wc>=95 || pr>=0.2) byDate[datePart].rain = true;
       if(hour % 3 !== 0) continue;
-      byDate[datePart].hours.push({t:pad2(hour)+":00", wind:Math.round(h.wind_speed_10m[i]*10)/10, sky:wmoToSky(h.weathercode[i]), temp:h.temperature_2m[i], rain:isRainCode(h.weathercode[i]) || (h.precipitation && h.precipitation[i]>=0.2)});
+      byDate[datePart].hours.push({t:pad2(hour)+":00", wind:Math.round(h.wind_speed_10m[i]*10)/10, gust:(h.wind_gusts_10m && typeof h.wind_gusts_10m[i]==="number") ? r1(h.wind_gusts_10m[i]) : null, sky:wmoToSky(h.weathercode[i]), temp:h.temperature_2m[i], rain:isRainCode(h.weathercode[i]) || (h.precipitation && h.precipitation[i]>=0.2)});
       byDate[datePart].temps.push(h.temperature_2m[i]);
     }
     var dates = Object.keys(byDate).sort();
@@ -1811,10 +1859,13 @@
 
     var omPromise = fetch(OPEN_METEO_URL, {cache:"no-store"}).then(function(res){ if(!res.ok) throw new Error("bad status"); return res.json(); });
     var wttrPromise = fetch(WTTR_URL, {cache:"no-store"}).then(function(res){ if(!res.ok) throw new Error("bad status"); return res.json(); });
+    var ensPromise = fetch(WIND_ENS_URL, {cache:"no-store"}).then(function(res){ if(!res.ok) throw new Error("bad status"); return res.json(); });
 
-    Promise.allSettled([omPromise, wttrPromise]).then(function(results){
+    Promise.allSettled([omPromise, wttrPromise, ensPromise]).then(function(results){
       var om = results[0].status==="fulfilled" ? results[0].value : null;
       var wttr = results[1].status==="fulfilled" ? results[1].value : null;
+      var ens = results[2].status==="fulfilled" ? windConsensus(results[2].value) : null;
+      if(ens && !Object.keys(ens.hours).length) ens = null;
       var now = new Date();
       var stamp = pad2(now.getHours())+":"+pad2(now.getMinutes());
       var fresh = null, note = "";
@@ -1833,6 +1884,16 @@
         } else {
           note = "بيانات حية من <span class=\"ltr-num\">Open-Meteo</span> — آخر تحديث الساعة <span class=\"ltr-num\">"+stamp+"</span>. (تعذّر الوصول لمصدر الغبار الإضافي الآن)";
         }
+        if(ens){
+          fresh.forEach(function(day){
+            day.hours.forEach(function(h){
+              var e = ens.hours[day.date+" "+h.t];
+              if(e){ h.wind = e.w; if(e.g!=null) h.gust = e.g; h.lo = e.lo; h.hi = e.hi; h.n = e.n; }
+            });
+          });
+          note += " الرياح: وسيط <span class=\"ltr-num\">"+ens.models.length+"</span> نماذج عالمية (<span class=\"ltr-num\">"+ens.models.join("، ")+"</span>) بدقة عُشر كم/س.";
+        }
+        WIND_ENS = ens;
       } else if(wttr){
         fresh = buildForecastFromWttr(wttr);
         note = "تعذّر الوصول لـ Open-Meteo، فالأرقام أعلاه من <span class=\"ltr-num\">wttr.in</span> فقط — آخر تحديث الساعة <span class=\"ltr-num\">"+stamp+"</span>.";
@@ -1842,8 +1903,10 @@
       var cur = null;
       if(om && om.current && typeof om.current.temperature_2m==="number"){
         cur = {temp:om.current.temperature_2m, feels:om.current.apparent_temperature, wind:Math.round(om.current.wind_speed_10m*10)/10,
+               gust:typeof om.current.wind_gusts_10m==="number" ? r1(om.current.wind_gusts_10m) : null,
                sky:wmoToSky(om.current.weather_code), rain:isRainCode(om.current.weather_code), time:String(om.current.time||"").slice(11,16) || stamp};
       }
+      if(cur && ens && ens.current){ cur.wind = ens.current.w; if(ens.current.g!=null) cur.gust = ens.current.g; cur.lo = ens.current.lo; cur.hi = ens.current.hi; cur.n = ens.current.n; }
       if(om && om.daily && om.daily.sunrise){
         SUN = {}; om.daily.time.forEach(function(d,k){ SUN[d] = {rise:hm(om.daily.sunrise[k]), set:hm(om.daily.sunset[k])}; });
       }
